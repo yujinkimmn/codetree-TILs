@@ -24,33 +24,44 @@ void input(){
     }
 }
 
-void move(int (&board)[21][21], int dir){
+void findMax(){
+    int cur_max = 0;
+    for(int i = 0; i < N; i++){
+        for(int j = 0 ; j < N; j++){
+            cur_max = max(cur_max, MAP[i][j]);
+        }
+    }
+    //cout << "최대값: " << cur_max;
+    if (cur_max > max_value) max_value = cur_max;
+}
+
+void move(int dir){
     // 위 - 열고정 & 행 탐색
     //cout << dir << '\n';
     if(dir == 0){
         for(int i = 0 ; i < N ; i++){
             queue <int> qu;
             for(int j = 0; j < N ; j++){
-                qu.push(board[j][i]);
-                board[j][i] = 0;
+                qu.push(MAP[j][i]);
+                MAP[j][i] = 0;
             }
             int idx = 0;
             while(!qu.empty()){
                 int now = qu.front();
                 qu.pop();
                 // 빈자리면 그냥 삽입
-                if(board[idx][i] == 0) {
-                    board[idx][i] = now;
+                if(MAP[idx][i] == 0) {
+                    MAP[idx][i] = now;
                 }
                 // 같은 값인 경우 누적 & 인덱스 증가(두번 합쳐짐 방지)
-                else if (board[idx][i] == now){
-                    board[idx][i] += now;
+                else if (MAP[idx][i] == now){
+                    MAP[idx][i] += now;
                     idx++;
                 }
                 // 값이 다른 경우 다음 칸에 삽입
-                else if(board[idx][i] != now){
+                else if(MAP[idx][i] != now){
                     idx++;
-                    board[idx][i] = now;
+                    MAP[idx][i] = now;
                 }
             }
         }
@@ -61,26 +72,26 @@ void move(int (&board)[21][21], int dir){
         for(int i = 0 ; i < N ; i++){
             queue <int> qu;
             for(int j = N-1; j >=0 ; j--){
-                qu.push(board[i][j]);
-                board[i][j] = 0;
+                qu.push(MAP[i][j]);
+                MAP[i][j] = 0;
             }
             int idx = N-1;
             while(!qu.empty()){
                 int now = qu.front();
                 qu.pop();
                 // 빈자리면 그냥 삽입
-                if(board[i][idx] == 0) {
-                    board[i][idx] = now;
+                if(MAP[i][idx] == 0) {
+                    MAP[i][idx] = now;
                 }
                 // 같은 값인 경우 누적 & 인덱스 증가(두번 합쳐짐 방지)
-                else if (board[i][idx] == now){
-                    board[i][idx] += now;
+                else if (MAP[i][idx] == now){
+                    MAP[i][idx] += now;
                     idx--;
                 }
                 // 값이 다른 경우 다음 칸에 삽입
-                else if(board[i][idx] != now){
+                else if(MAP[i][idx] != now){
                     idx--;
-                    board[i][idx] = now;
+                    MAP[i][idx] = now;
                 }
             }
         }
@@ -91,26 +102,26 @@ void move(int (&board)[21][21], int dir){
         for(int i = 0 ; i < N ; i++){
             queue <int> qu;
             for(int j = N-1; j >=0 ; j--){
-                qu.push(board[j][i]);
-                board[j][i] = 0;
+                qu.push(MAP[j][i]);
+                MAP[j][i] = 0;
             }
             int idx = N-1;
             while(!qu.empty()){
                 int now = qu.front();
                 qu.pop();
                 // 빈자리면 그냥 삽입
-                if(board[idx][i] == 0) {
-                    board[idx][i] = now;
+                if(MAP[idx][i] == 0) {
+                    MAP[idx][i] = now;
                 }
                 // 같은 값인 경우 누적 & 인덱스 증가(두번 합쳐짐 방지)
-                else if (board[idx][i] == now){
-                    board[idx][i] += now;
+                else if (MAP[idx][i] == now){
+                    MAP[idx][i] += now;
                     idx--;
                 }
                 // 값이 다른 경우 다음 칸에 삽입
-                else if(board[idx][i] != now){
+                else if(MAP[idx][i] != now){
                     idx--;
-                    board[idx][i] = now;
+                    MAP[idx][i] = now;
                 }
             }
         }
@@ -121,26 +132,26 @@ void move(int (&board)[21][21], int dir){
         for(int i = 0 ; i < N ; i++){
             queue <int> qu;
             for(int j = 0; j < N ; j++){
-                qu.push(board[i][j]);
-                board[i][j] = 0;
+                qu.push(MAP[i][j]);
+                MAP[i][j] = 0;
             }
             int idx = 0;
             while(!qu.empty()){
                 int now = qu.front();
                 qu.pop();
                 // 빈자리면 그냥 삽입
-                if(board[i][idx] == 0) {
-                    board[i][idx] = now;
+                if(MAP[i][idx] == 0) {
+                    MAP[i][idx] = now;
                 }
                 // 같은 값인 경우 누적 & 인덱스 증가(두번 합쳐짐 방지)
-                else if (board[i][idx] == now){
-                    board[i][idx] += now;
+                else if (MAP[i][idx] == now){
+                    MAP[i][idx] += now;
                     idx++;
                 }
                 // 값이 다른 경우 다음 칸에 삽입
-                else if(board[i][idx] != now){
+                else if(MAP[i][idx] != now){
                     idx++;
-                    board[i][idx] = now;
+                    MAP[i][idx] = now;
                 }
             }
         }
@@ -148,33 +159,29 @@ void move(int (&board)[21][21], int dir){
 }
 
 
-void dfs(int (&board)[21][21], int cnt){
+void dfs(int cnt){
     if (cnt > 5){   // 종료 조건
-        for(int i = 0; i < N; i++){
-            for(int j = 0 ; j < N; j++){
-                max_value = max(max_value, board[i][j]);
-            }
-        }
+        findMax();
+        //cout << '\n';
         return;
     }
-
-    // 원본 복사 해놓기
-    int tmp [21][21]{};
-    for(int i = 0 ; i < N; i++){
-        for(int j = 0 ; j < N; j++){
-            tmp[i][j] = board[i][j];
-        }
-    }
-
     for(int d = 0 ; d < 4 ; d++){
+        // 원본 복사 해놓기
+        int tmp [21][21];
+        for(int i = 0 ; i < N; i++){
+            for(int j = 0 ; j < N; j++){
+                tmp[i][j] = MAP[i][j];
+            }
+        }
+
         // 재귀
-        move(board, d);
-        dfs(board, cnt + 1);
+        move(d);
+        dfs(cnt + 1);
 
         // 원상 복구 
         for(int i = 0 ; i < N; i++){
             for(int j = 0 ; j < N; j++){
-                board[i][j] = tmp[i][j];
+                MAP[i][j] = tmp[i][j];
             }
         }
     }
@@ -182,6 +189,6 @@ void dfs(int (&board)[21][21], int cnt){
 
 int main(){
     input();
-    dfs(MAP, 1);
+    dfs(1);
     cout << max_value;
 }
