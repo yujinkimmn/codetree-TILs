@@ -18,25 +18,6 @@ map<int, vector<Sushi>> sushies;    // (x 위치, 초밥 정보들)
 map<int, Person> people; 
 
 
-// time 만큼 벨트를 시계방향으로 회전
-void Rotate(int time){
-    // 맨 처음엔 회전할 거 없음
-    if(time == 1) {
-        cur_time = 1;
-        return;
-    }
-
-    // 회전할 초밥 없으면 패슷
-    if(sushies.size() != 0){
-        map<int, vector<Sushi>> tmp;
-        for(auto pos : sushies){
-            int newPos = (pos.first + time - cur_time) % L;
-            tmp[newPos] = pos.second;
-        }
-        sushies = tmp;
-    }
-    cur_time = time;
-}
 
 // 스시 만들기
 void MakeSushi(int pos, string name){
@@ -100,6 +81,35 @@ void EatSushi(){
         }
         else p++;
     }
+}
+
+
+// time 만큼 벨트를 시계방향으로 회전
+void Rotate(int time){
+    // 맨 처음엔 회전할 거 없음
+    if(time == 1) {
+        cur_time = 1;
+        return;
+    }
+
+    // 회전할 초밥 없으면 패스
+    if(sushies.size() != 0){
+
+        // 1초마다 회전 + 먹기 수행
+        int gap = time - cur_time;
+
+        for(int i = 0 ; i < gap ; i++){
+            map<int, vector<Sushi>> tmp;
+            for(auto pos : sushies){
+                int newPos = (pos.first + i) % L;
+                tmp[newPos] = pos.second;
+            }
+            sushies = tmp;
+            EatSushi();
+        }
+    }
+    // 현재 시간 업데이트 
+    cur_time = time;
 }
 
 // 사람 수와 초밥의 수를 출력
