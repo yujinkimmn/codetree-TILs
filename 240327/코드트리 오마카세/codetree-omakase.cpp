@@ -205,7 +205,7 @@ void sol() {
 
 int main() {
     // 여기에 코드를 작성해주세요.
-    freopen("input.txt", "r", stdin);
+    //freopen("input.txt", "r", stdin);
     input();
     sol();
 
