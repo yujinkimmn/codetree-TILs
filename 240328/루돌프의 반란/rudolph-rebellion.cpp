@@ -67,9 +67,9 @@ void SantaRudolfCrash(int score, int x, int y, int santa_num, int x_to_move, int
 
     // 연쇄 충돌 아니면 그 칸으로 이동하고 기절 
     else if(MAP[santa_new_x][santa_new_y] == 0){
+        MAP[santas[santa_num].x][santas[santa_num].y] = 0;  // 산타가 원래 있던 자리는 비우기
         MAP[santa_new_x][santa_new_y] = santa_num;
         santas[santa_num].sleep = turn + 1;
-        MAP[santas[santa_num].x][santas[santa_num].y] = 0;  // 산타가 원래 있던 자리는 비우기
         santas[santa_num].x = santa_new_x;
         santas[santa_num].y = santa_new_y;
     }
@@ -89,6 +89,7 @@ void SantaInteract(int x_move, int y_move, int x, int y, int santa_num){
     // 게임판 밖이면 탈락
     if (new_x < 1 || new_y < 1 || new_x > N || new_y > N) {
         crashed_santa.fail = 1;
+        santa_cnt--;
     }
 
     // 루돌프와 부딪힌다면 산타 -> 루돌프 충돌 
@@ -165,16 +166,16 @@ void MoveRudolf(){
     rudolf.y = new_y;
 }
 
-
+   
 // 2. 산타 이동 
 // 기절하지 않은 산타만 루돌프에게 가까워지는 방향으로
 int dx[] = {-1, 0, 1, 0};   // 상 - 우 - 하 - 좌 우선순위 
 int dy[] = {0, 1, 0, -1};
 
-void MoveSanta(int cur_turn ){
+void MoveSanta(){
     for(int i = 1; i<= P ; i++){
         // 탈락한 산타 제외, K턴에 기절 상태인 산타 제외
-        if(santas[i].fail || santas[i].sleep >= cur_turn) continue;
+        if(santas[i].fail || santas[i].sleep >= turn) continue;
 
         // 상하좌우 중 루돌프와 가장 가까운 쪽이 어딘지 찾기
         int min_dist = pow(rudolf.x - santas[i].x, 2) + pow(rudolf.y - santas[i].y, 2);
@@ -203,8 +204,9 @@ void MoveSanta(int cur_turn ){
         // 움직일 수 있는 칸이 없으면 움직이지 않음
         if(dir == -1) continue;
 
-        MAP[santas[i].x][santas[i].y] = 0;  // 원래 산타가 있던 자리 0으로
 
+
+        MAP[santas[i].x][santas[i].y] = 0;  // 원래 산타가 있던 자리 0으로
         // 해당 칸에 루돌프가 있으면 산타->루돌프 충돌
         // 산타는 자신의 이동방향 반대로 밀림
         if(MAP[santa_new_x][santa_new_y] == -1){
@@ -240,7 +242,7 @@ int main(){
     while(turn <= M){
         if(santa_cnt == 0) break;   // P명의 산타가 모두 탈락시 게임 종료 
         MoveRudolf();
-        MoveSanta(turn);
+        MoveSanta();
         AddScore();  // 해당 턴에 살아남은 산타들 점수 +1
 
         // for(int i = 1; i<= P; i++){
