@@ -7,6 +7,7 @@ using namespace std;
 #define MAX_N 40
 
 int board[MAX_L][MAX_L];      // 체스판 상태
+int tmp[MAX_L][MAX_L];
 int knight[MAX_L][MAX_L];   // 기사 영역
 int first_hp[MAX_N];      // 기사들의 초기 체력 
 int hp[MAX_N];            // 기사들의 현재 체력
@@ -70,7 +71,6 @@ int main(){
         fill(if_crashed , if_crashed + MAX_N, 0);
 
         int flag = 0;
-        int tmp[MAX_L][MAX_L];
         fill(&tmp[0][0], &tmp[MAX_L][MAX_L], 0);
 
         for(int x = new_x ; x < new_x + h; x++){
@@ -201,4 +201,5 @@ int main(){
     }
 
     cout << ans << endl;
+    return 0;
 }
