@@ -3,8 +3,8 @@
 
 using namespace std;
 
-#define MAX_L 42
-#define MAX_N 32
+#define MAX_L 50
+#define MAX_N 40
 
 int board[MAX_L][MAX_L];      // 체스판 상태
 int knight[MAX_L][MAX_L];   // 기사 영역
@@ -52,6 +52,9 @@ int main(){
         int first_knight_num, dir;
         cin >> first_knight_num >> dir;
 
+        if(is_dead[first_knight_num]) continue;
+
+
         // 명령 받은 기사
         int h = knight_h_w[first_knight_num].first;
         int w = knight_h_w[first_knight_num].second;
@@ -73,10 +76,15 @@ int main(){
         for(int x = new_x ; x < new_x + h; x++){
             for(int y = new_y ; y < new_y + w; y++){
                 // 벽에 부딪힘
-                if (x < 1 || y < 1 || x > L || y > L || board[x][y] == 2) {
+                if (x < 1 || y < 1 || x > L || y > L) {
                     flag = 1;
                     break;
                 }
+                if (board[x][y] == 2){
+                    flag = 1;
+                    break;
+                }
+
                 // 다른 기사와 충돌
                 else if(knight[x][y] > 0 && knight[x][y] != first_knight_num){
                     if(!if_crashed[knight[x][y]]) { // 중복 방지용
@@ -109,14 +117,20 @@ int main(){
             for(int i = last_knight_new_x; i < last_knight_new_x + last_knight_h; i++){
                 for(int j = last_knight_new_y; j < last_knight_new_y + last_knight_w; j++){
                     // 벽이 있다면 모든 이동 무산!
-                    if(board[i][j] == 2 || i < 1 || j < 1 || i > L || j > L){
+                    if(i < 1 || j < 1 || i > L || j > L){
                         flag = 1;
                         break;
                     }
+                    if(board[i][j] == 2){
+                        flag = 1;
+                        break;
+                    }
+
                     // 또 다른 기사와 충돌
                     else if (knight[i][j] > 0 && knight[i][j] != last_knight_num){
                         if (!if_crashed[knight[i][j]]){
                             crashed_num.push(knight[i][j]);
+                            if_crashed[knight[i][j]] = 1;
                             tmp[i][j] = last_knight_num;
 
                         }
@@ -135,35 +149,48 @@ int main(){
         // knight_map에 이동 결과 저장하기
         int updated[MAX_N]; 
         fill(updated, updated + MAX_N, 0);
+        if_crashed[first_knight_num] = 1;  
 
         for(int i = 1; i<= L ; i++){
             for(int j = 1; j <= L ; j++){
                 
                 int num = tmp[i][j];
-                if(num == 0) {
+                int origin_num = knight[i][j];
+
+                // 충돌 없었던 기사 정보는 그대로 가져오기
+                if(origin_num > 0 && !if_crashed[origin_num]){
+                    knight[i][j] = origin_num;
+                    continue;
+                }
+                // 빈자리
+                else if(num == 0) {
                     knight[i][j] = 0;
                     continue;
                 }
 
                 // 처음 명령을 받은 기사를 제외하고 함정(1) 과 겹치면 -1 체력
-                if(board[i][j] == 1 && num > 0 && num != first_knight_num) hp[num] -= 1;
-
-                // 체력 다쓰면 체스판에서 사라짐
-                if (hp[num] <= 0) {
-                    is_dead[num] = 1;
-                    continue;
+                if(board[i][j] == 1 && num > 0 && num != first_knight_num) {
+                    hp[num] -= 1;
+                    // 체력 다쓰면 체스판에서 사라짐
+                    if (hp[num] <= 0) {
+                        is_dead[num] = 1;
+                        knight[i][j] = 0;
+                        continue;
+                    }
                 }
 
                 // 이동 결과 업데이트
                 knight[i][j] = tmp[i][j];
-                if(updated[num] == 1) continue;
-
+                
                 // 영역의 제일 좌측 상단 정보도 업데이트
+                if(updated[num] == 1) continue;
                 knight_pos[num] = {i, j};
                 updated[num] = 1;
 
             }
         }
+        int dum = -1;
+        
     }
 
     // 살아있는 기사들의 대미지 합 구하기 
