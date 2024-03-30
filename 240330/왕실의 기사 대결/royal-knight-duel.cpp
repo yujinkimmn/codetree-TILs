@@ -148,7 +148,7 @@ int main(){
     }
 
     // 결과 출력
-    long long ans = 0;
+    int ans = 0;
     for(int i = 1; i <= N; i++){
         if(hp[i] > 0) ans += (first_hp[i] - hp[i]);
     }
