@@ -1,4 +1,5 @@
 #include <iostream>
+#include <unordered_set>
 #include <queue>
 
 using namespace std;
@@ -6,33 +7,118 @@ using namespace std;
 #define MAX_L 50
 #define MAX_N 40
 
-int board[MAX_L][MAX_L];      // 체스판 상태
-int tmp[MAX_L][MAX_L];
-int knight[MAX_L][MAX_L];   // 기사 영역
+int L, N, Q;
+
+int info[MAX_L][MAX_L];      // 체스판 상태
+int tmp[MAX_L][MAX_L];  // 디버깅으로 동작 확인용
+int knight_map[MAX_L][MAX_L];   // 기사 영역
 int damage[MAX_N];      // 기사들이 받은 대미지 수
+int first_hp[MAX_N];            // 기사들의 현재 체력
 int hp[MAX_N];            // 기사들의 현재 체력
-int is_dead[MAX_N];       // 탈락 여부
-int updated[MAX_N]; 
+int is_moved[MAX_N];    // 이동 여부
+
 pair<int, int> knight_pos[MAX_N];  // 기사들의 위치
+pair<int, int> tmp_knight_pos[MAX_N]; 
+
 pair<int, int> knight_h_w[MAX_N];   // 기사들의 방패 크기 
 
 int dx[] = {-1, 0, 1, 0};   // 위, 오, 아래, 왼
 int dy[] = {0, 1, 0, -1};
 
-int L, N, Q;
+
+// 명령 받은 기사가 이동할 영역이 벽이거나 격자 밖이진 않은지 & 충돌 발생한 기사 확인
+bool CheckIfMove(int start_num, int dir){
+    // 초기화
+    for(int i = 1; i <= N ; i++){
+        tmp_knight_pos[i] = knight_pos[i];
+        is_moved[i] = false;
+        damage[i] = 0;
+    }
+
+    // 시작 기사 넣기
+    queue<int> crashed_knights;     
+    crashed_knights.push(start_num);
+    is_moved[start_num] = true;
+
+    // 연쇄 이동 중에 벽에 부딪히지 않는지 확인하기 -> 모든 이동 무산
+    while(!crashed_knights.empty()){
+        int cur_num = crashed_knights.front();
+        crashed_knights.pop();
+
+        tmp_knight_pos[cur_num].first += dx[dir];
+        tmp_knight_pos[cur_num].second += dy[dir];
+
+        int new_x = tmp_knight_pos[cur_num].first;
+        int new_y = tmp_knight_pos[cur_num].second;
+        int h =  knight_h_w[cur_num].first;
+        int w =  knight_h_w[cur_num].second;
+
+        // 영역에서 충돌이 발생하는지 확인하기
+        for(int i = new_x; i < new_x + h; i++){
+            for(int j = new_y; j < new_y + w; j++){
+                
+                // 벽이 있다면 모든 이동 무산!
+                if(i < 1 || j < 1 || i > L || j > L) return false;
+                if (info[i][j] == 2)    return false;
+
+                // 함정이면 대미지 기록
+                if (info[i][j] == 1) {
+                    damage[cur_num] += 1;
+                }
+
+                // 자기 자신이 아닌 또 다른 기사와 충돌
+                int other_knight_num = knight_map[i][j];
+                if (other_knight_num > 0 && other_knight_num != cur_num){
+                    if (!is_moved[other_knight_num]){
+                        crashed_knights.push(other_knight_num);
+                        is_moved[other_knight_num] = true;
+                    }
+                }
+            }
+        }
+    }
+    damage[start_num] = 0;
+    return true;
+}
+
+
+void MoveKnights(){
+    // 기사 지도 초기화
+    memset(knight_map, 0, sizeof(knight_map));
+
+    for(int i = 1; i <= N ; i++){
+        // 이동한 기사는 새로운 위치 & 대미지 업데이트
+        if(is_moved[i]){
+            knight_pos[i] = tmp_knight_pos[i];
+            hp[i] -= damage[i];
+        }
+
+        // 죽은 기사는 격자에서 없애기
+        if (hp[i] <= 0) continue;
+
+        int x = knight_pos[i].first;
+        int y = knight_pos[i].second;
+        int h = knight_h_w[i].first;
+        int w = knight_h_w[i].second;
+
+        for(int r = x ; r < x + h; r++){
+            for(int c = y ; c < y + w; c++){
+                knight_map[r][c] = i;
+            }
+        }
+    }
+}
 
 int main(){
     //freopen("input.txt", "r", stdin);
 
     cin >> L >> N >> Q;
-
     // 체스판 정보
     for(int i = 1; i <= L; i++){
         for(int j = 1; j <= L ; j++){
-            cin >> board[i][j];
+            cin >> info[i][j];
        }
     }
-
     // 1번 ~ N명의 기사 정보
     for(int i = 1; i <= N; i++){
         int r, c, h, w, k;
@@ -40,155 +126,33 @@ int main(){
         knight_pos[i] = {r, c};
         knight_h_w[i] = {h, w};
         hp[i] = k;
+        first_hp[i] = k;
         for(int x = r; x < r + h ; x++){
             for(int y = c; y < c + w; y++){
-                knight[x][y] = i;
+                knight_map[x][y] = i;
             }
         }
     }
-
 
     // Q개의 명령
     for(int q = 1; q <= Q; q++){
         int first_knight_num, dir;
         cin >> first_knight_num >> dir;
 
-        if(is_dead[first_knight_num]) continue;
-
-
-        // 명령 받은 기사
-        int h = knight_h_w[first_knight_num].first;
-        int w = knight_h_w[first_knight_num].second;
-
-        // 이동할 칸
-        int new_x = knight_pos[first_knight_num].first + dx[dir];
-        int new_y = knight_pos[first_knight_num].second + dy[dir];
-
-
-        // 명령 받은 기사가 이동할 영역이 벽이거나 격자 밖이진 않은지 & 충돌 발생한 기사 확인
-        queue<int> crashed_num;
-        int if_crashed[MAX_N];     // 중복 방지용
-        fill(if_crashed, if_crashed + MAX_N, 0);
-
-        int flag = 0;
-        fill(&tmp[0][0], &tmp[MAX_L][MAX_L], 0);
-
-        for(int x = new_x ; x < new_x + h; x++){
-            for(int y = new_y ; y < new_y + w; y++){
-                // 벽에 부딪힘
-                if (x < 1 || y < 1 || x > L || y > L || board[x][y] == 2) {
-                    flag = 1;
-                    break;
-                }
-
-                // 다른 기사와 충돌
-                else if(knight[x][y] > 0 && knight[x][y] != first_knight_num){
-                    if(!if_crashed[knight[x][y]]) { // 중복 방지용
-                        crashed_num.push(knight[x][y]);
-                        if_crashed[knight[x][y]] = 1;
-                    }
-                }
-                tmp[x][y] = first_knight_num;
-            }
+        if(hp[first_knight_num] <= 0) continue;     // 죽은기사에게 명령 내리면 nothing 
+ 
+        if(CheckIfMove(first_knight_num, dir)){
+            // 이동 가능하면 실제 이동을 수행
+            MoveKnights();
         }
-
-        if (flag == 1) continue;    // 명령을 받은 기사도 이동할 수 없음
-
-
-        // 가장 마지막의 연쇄 이동 기사가 벽에 부딪히지 않는지 확인하기 -> 모든 이동 무산
-        // int last_knight_num = first_knight_num;
-        flag = 0;
-
-        while(!crashed_num.empty() && !flag){
-            int last_knight_num = crashed_num.front();
-            crashed_num.pop();
-
-            int last_knight_new_x = knight_pos[last_knight_num].first + dx[dir];
-            int last_knight_new_y = knight_pos[last_knight_num].second + dy[dir];
-            int last_knight_h =  knight_h_w[last_knight_num].first;
-            int last_knight_w =  knight_h_w[last_knight_num].second;
-
-            // 연쇄 충돌한 기사의 영역도 충돌이 발생하는지 확인하기
-            for(int i = last_knight_new_x; i < last_knight_new_x + last_knight_h; i++){
-                for(int j = last_knight_new_y; j < last_knight_new_y + last_knight_w; j++){
-                    // 벽이 있다면 모든 이동 무산!
-                    if(i < 1 || j < 1 || i > L || j > L || board[i][j] == 2){
-                        flag = 1;
-                        break;
-                    }
-
-                    // 또 다른 기사와 충돌
-                    else if (knight[i][j] > 0 && knight[i][j] != last_knight_num){
-                        if (!if_crashed[knight[i][j]]){
-                            crashed_num.push(knight[i][j]);
-                            if_crashed[knight[i][j]] = 1;
-                            tmp[i][j] = last_knight_num;
-
-                        }
-                    }
-                    // 충돌 없음
-                    else{
-                        tmp[i][j] = last_knight_num;
-                    }
-                }
-            }
-
-        }
-        if (flag == 1) continue;    
-        
-        // 벽 없이 모든 이동 완료시 대미지 깎고,
-        // knight_map에 이동 결과 저장하기
-        fill(updated, updated + MAX_N, 0);
-
-        for(int i = 1; i<= L ; i++){
-            for(int j = 1; j <= L ; j++){
-                
-                int num = tmp[i][j];
-                int origin_num = knight[i][j];
-
-                // 충돌 없었던 기사 정보는 그대로 가져오기
-                if(origin_num > 0 && !if_crashed[origin_num]){
-                    knight[i][j] = origin_num;
-                    continue;
-                }
-                // 빈자리
-                else if(num == 0) {
-                    knight[i][j] = 0;
-                    continue;
-                }
-                // 처음 명령을 받은 기사를 제외하고 함정(1) 과 겹치면 -1 체력
-                if(board[i][j] == 1 && num > 0 && if_crashed[num]) {
-                    hp[num] -= 1;
-                    damage[num] += 1;
-                }
-                // 체력 다쓰면 체스판에서 사라짐
-                if (hp[num] <= 0) {
-                    is_dead[num] = 1;
-                    knight[i][j] = 0;
-                    continue;
-                }
-
-                // 이동 결과 업데이트
-                knight[i][j] = tmp[i][j];
-                
-                // 영역의 제일 좌측 상단 정보도 업데이트
-                if(updated[num] == 1) continue;
-                knight_pos[num] = {i, j};
-                updated[num] = 1;
-
-            }
-        }
-
-        
     }
-    int dum = -1;
-    // 살아있는 기사들의 대미지 합 구하기 
-    int ans = 0; 
+
+    // 결과 출력
+    long long ans = 0;
     for(int i = 1; i <= N; i++){
-        if(is_dead[i]) continue;
-        ans += damage[i];
+        if(hp[i] > 0) ans += (first_hp[i] - hp[i]);
     }
 
-    cout << ans << endl;
+    cout << ans;
     return 0;
 }
