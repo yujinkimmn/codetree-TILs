@@ -129,7 +129,7 @@ void BombAttack(Turret start, Turret target){
 }
 
 int main(){
-    freopen("input.txt", "r", stdin);
+    //freopen("input.txt", "r", stdin);
 
     cin >> N >> M >> K;
 
