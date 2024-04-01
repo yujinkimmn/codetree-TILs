@@ -121,7 +121,9 @@ void BombAttack(Turret start, Turret target){
         else if(new_x > N) new_x = 1;
         if(new_y < 1) new_y = M;
         else if(new_y > M) new_y = 1;
-
+        
+        
+        if(new_x == start.x && new_y == start.y) continue; // 공격자는 영향 X
         if(map[new_x][new_y] <= 0) continue;
 
         tmp[new_x][new_y] -= attack_point;
@@ -130,9 +132,7 @@ void BombAttack(Turret start, Turret target){
 
 int main(){
     //freopen("input.txt", "r", stdin);
-
     cin >> N >> M >> K;
-
     for(int i = 1 ; i <= N ; i++){
         for(int j = 1 ; j <= M; j++){
             int t; cin >> t;
@@ -143,7 +143,7 @@ int main(){
         }
     }
 
-    int dum = -1;
+    
     // K번의 턴 반복
     int turn = 1;
     while(turn <= K && turrets.size() > 1){
