@@ -21,22 +21,19 @@ set<int, greater<int>> grid[MAX_N][MAX_N];
 int dx[] = {-1, 0, 1, 0};
 int dy[] = {0, 1, 0, -1};
 
-
-int existing_num = -1;
-
 bool InRange(int x, int y){
     return x >= 1 && y >= 1 && x <= n && y <= n;
 }
 
-bool IfExist(int num, int x, int y){
+// 같은 위치에 존재하는지 확인
+int IfExist(int num, int x, int y){
     for(int i = 0 ; i < m ; i++){
         if(i == num) continue;
         if (pos[i].first == x && pos[i].second == y) {
-            existing_num = i;
-            return true;
+            return i;
         }
     }
-    return false;
+    return -1;  // 아무도 존재하지 않으면 -1을 리턴
 }
 
 void HaveGun(int num, int x, int y){
@@ -44,7 +41,7 @@ void HaveGun(int num, int x, int y){
     if(grid[x][y].size() > 0){
         // num 플레이어가 총이 없으면 그냥 제일 센 총 가지기
         int max_gun = *grid[x][y].begin();
-        if(!gun[num]){
+        if(gun[num] == 0){
             gun[num] = max_gun;
             grid[x][y].erase(max_gun);  // 격자에선 해당 총 없애기
         }
@@ -60,9 +57,8 @@ void HaveGun(int num, int x, int y){
 }
 
 // x, y 위치에서 새로 들어온 num과 싸우기
-void Fight(int num, int x, int y){
-    int winner = -1;
-    int loser = -1;
+void Fight(int num, int existing_num, int x, int y){
+    int winner = -1, loser = -1;
     int gap = (power[num] + gun[num]) - (power[existing_num] + gun[existing_num]);
     // 초기 능력치 + 총 공격력 합이 더 큰 플레이어가 승리
     if(gap > 0){
@@ -95,23 +91,23 @@ void Fight(int num, int x, int y){
         gun[loser] = 0;
     }
     // 본인의 방향대로 한 칸 이동
-    int nx = pos[loser].first + dx[dir[loser]];
-    int ny = pos[loser].second + dy[dir[loser]];
+    int nx = x + dx[dir[loser]];
+    int ny = y + dy[dir[loser]];
 
     // 격자 밖이거나 다른 플레이어가 있다면 오른쪽으로 90도 회전해서 갈 수 있는 곳 찾기
-    while (!InRange(nx, ny) || IfExist(loser, nx, ny)){
+    while (!InRange(nx, ny) || IfExist(loser, nx, ny) != -1){
        dir[loser] = (dir[loser] + 1) % 4;
-       nx = pos[loser].first + dx[dir[loser]];
-       ny = pos[loser].second + dy[dir[loser]];
+       nx = x + dx[dir[loser]];
+       ny = y + dy[dir[loser]];
     }
     // 새로운 칸으로 이동 
     pos[loser] = make_pair(nx, ny);
 
     // 새로운 칸에 총 있으면 갖기
-    HaveGun(loser, nx, ny);
+    HaveGun(loser, pos[loser].first, pos[loser].second);
     
     // 이긴 플레이어는 해당 칸에 있는 총 가지기
-    HaveGun(winner, x, y);
+    HaveGun(winner, pos[winner].first, pos[winner].second);
 }
 
 int main(){
@@ -131,10 +127,10 @@ int main(){
         dir[i] = d;
         power[i] = s;
     }
-    int dum = -1;
+
     // k번의 턴 동안 반복
     while(k--){
-        // 0 ~ n-1번 플레이어 차례로 실행
+        // 0 ~ m-1번 플레이어 차례로 실행
         for(int i = 0; i < m ; i++){
             int nx = pos[i].first + dx[dir[i]];
             int ny = pos[i].second + dy[dir[i]];
@@ -149,9 +145,10 @@ int main(){
             pos[i] = make_pair(nx, ny);
 
             // 이동한 칸에 다른 플레이어가 있는지 확인
-            if(IfExist(i, nx, ny)){
+            int existing_num = IfExist(i, nx, ny);
+            if(existing_num != -1){
                 // 존재한다면 싸우기
-                Fight(i, nx, ny);
+                Fight(i, existing_num, nx, ny);
             }
 
             // 다른 플레이어 없다면 총 가지기
@@ -161,6 +158,7 @@ int main(){
         }
         int dum = -1;
     }
+    // 결과 출력
     for(int i = 0; i < m ; i++){
         cout << point[i] << " ";
     }
