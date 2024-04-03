@@ -1,5 +1,7 @@
 #include <iostream>
 #include <vector>
+#include <functional>
+
 // #include <set>
 
 #define MAX_N 21
