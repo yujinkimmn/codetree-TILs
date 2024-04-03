@@ -1,5 +1,6 @@
 #include <iostream>
-#include <set>
+#include <vector>
+// #include <set>
 
 #define MAX_N 21
 #define MAX_M 30
@@ -16,7 +17,9 @@ int point[MAX_M];
 
 // 격자에 있는 총의 정보들 
 // set으로 제일 큰 총이 앞으로 오도록 함
-set<int, greater<int>> grid[MAX_N][MAX_N]; 
+// set<int, greater<int>> grid[MAX_N][MAX_N]; 
+vector<int> grid[MAX_N][MAX_N]; 
+
 
 int dx[] = {-1, 0, 1, 0};
 int dy[] = {0, 1, 0, -1};
@@ -26,10 +29,12 @@ bool InRange(int x, int y){
 }
 
 // 같은 위치에 존재하는지 확인
-int IfExist(int num, int x, int y){
+int IfExist(pair<int, int> cur_pos){
     for(int i = 0 ; i < m ; i++){
-        if(i == num) continue;
-        if (pos[i].first == x && pos[i].second == y) {
+        // if(i == num) continue;
+        int x, y;
+        tie(x, y) = pos[i];
+        if (cur_pos == make_pair(x, y)) {
             return i;
         }
     }
@@ -37,23 +42,32 @@ int IfExist(int num, int x, int y){
 }
 
 void HaveGun(int num, int x, int y){
-    // 해당 칸에 총이 있으면 
-    if(grid[x][y].size() > 0){
-        // num 플레이어가 총이 없으면 그냥 제일 센 총 가지기
-        int max_gun = *grid[x][y].begin();
-        if(gun[num] == 0){
-            gun[num] = max_gun;
-            grid[x][y].erase(max_gun);  // 격자에선 해당 총 없애기
-        }
-        else{
-            // 갖고 있는 총 vs 격차에 있는 총 중 센걸로 가지기
-            if(max_gun > gun[num]){
-                grid[x][y].insert(gun[num]);    // 갖고 있던 총 내려놓기
-                grid[x][y].erase(max_gun);      // 격자에서 총 없애기
-                gun[num] = max_gun;
-            }
-        }
-    }
+    // 가장 좋은 총으로 갱신
+    grid[x][y].push_back(gun[num]);
+    sort(grid[x][y].begin(), grid[x][y].end(), greater<int>());
+    
+    int best = grid[x][y][0];
+    grid[x][y].erase(grid[x][y].begin());
+
+    gun[num] = best;
+
+    // // 해당 칸에 총이 있으면 
+    // if(grid[x][y].size() > 0){
+    //     // num 플레이어가 총이 없으면 그냥 제일 센 총 가지기
+    //     int max_gun = *grid[x][y].begin();
+    //     if(gun[num] == 0){
+    //         gun[num] = max_gun;
+    //         grid[x][y].erase(max_gun);  // 격자에선 해당 총 없애기
+    //     }
+    //     else{
+    //         // 갖고 있는 총 vs 격차에 있는 총 중 센걸로 가지기
+    //         if(max_gun > gun[num]){
+    //             grid[x][y].insert(gun[num]);    // 갖고 있던 총 내려놓기
+    //             grid[x][y].erase(max_gun);      // 격자에서 총 없애기
+    //             gun[num] = max_gun;
+    //         }
+    //     }
+    // }
 }
 
 // x, y 위치에서 새로 들어온 num과 싸우기
@@ -87,7 +101,7 @@ void Fight(int num, int existing_num, int x, int y){
     
     // 진 플레이어는 총 갖고있는거 내려놓고
     if(gun[loser]){
-        grid[x][y].insert(gun[loser]);
+        grid[x][y].push_back(gun[loser]);
         gun[loser] = 0;
     }
     // 본인의 방향대로 한 칸 이동
@@ -95,7 +109,7 @@ void Fight(int num, int existing_num, int x, int y){
     int ny = y + dy[dir[loser]];
 
     // 격자 밖이거나 다른 플레이어가 있다면 오른쪽으로 90도 회전해서 갈 수 있는 곳 찾기
-    while (!InRange(nx, ny) || IfExist(loser, nx, ny) != -1){
+    while (!InRange(nx, ny) || IfExist(make_pair(nx, ny)) != -1){
        dir[loser] = (dir[loser] + 1) % 4;
        nx = x + dx[dir[loser]];
        ny = y + dy[dir[loser]];
@@ -117,7 +131,7 @@ int main(){
     for(int i = 1 ; i <= n ; i++){
         for(int j = 1; j <= n ; j++){
             int g; cin >> g;
-            if(g > 0) grid[i][j].insert(g);
+            if(g > 0) grid[i][j].push_back(g);
         }
     }
     for(int i = 0; i < m ; i++){    // 플레이어 정보
@@ -132,6 +146,7 @@ int main(){
     while(k--){
         // 0 ~ m-1번 플레이어 차례로 실행
         for(int i = 0; i < m ; i++){
+            // Step 1-1. 현재 플레이어가 움직일 다음 위치와 방향 구하기
             int nx = pos[i].first + dx[dir[i]];
             int ny = pos[i].second + dy[dir[i]];
 
@@ -141,19 +156,20 @@ int main(){
                 ny = pos[i].second + dy[dir[i]];
             }
             
+            // 이동할 칸에 다른 플레이어가 있는지 확인
+            int existing_num = IfExist(make_pair(nx, ny));
+
             // 해당 칸으로 이동
             pos[i] = make_pair(nx, ny);
 
-            // 이동한 칸에 다른 플레이어가 있는지 확인
-            int existing_num = IfExist(i, nx, ny);
             if(existing_num != -1){
-                // 존재한다면 싸우기
+                // 플레이어가 존재한다면 싸우기
                 Fight(i, existing_num, nx, ny);
             }
 
             // 다른 플레이어 없다면 총 가지기
-            else{
-                HaveGun(i, nx, ny);
+            else {
+                HaveGun(i, pos[i].first, pos[i].second);
             }
         }
         int dum = -1;
