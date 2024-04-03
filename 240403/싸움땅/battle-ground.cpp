@@ -121,7 +121,7 @@ int main(){
     for(int i = 1 ; i <= n ; i++){
         for(int j = 1; j <= n ; j++){
             int g; cin >> g;
-            grid[i][j].insert(g);
+            if(g > 0) grid[i][j].insert(g);
         }
     }
     for(int i = 0; i < m ; i++){    // 플레이어 정보
@@ -159,6 +159,7 @@ int main(){
                 HaveGun(i, nx, ny);
             }
         }
+        int dum = -1;
     }
     for(int i = 0; i < m ; i++){
         cout << point[i] << " ";
