@@ -1,6 +1,9 @@
 #include <iostream>
 #include <vector>
+#include <tuple>
+#include <algorithm>
 #include <functional>
+
 
 // #include <set>
 
