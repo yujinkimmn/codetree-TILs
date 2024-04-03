@@ -2,10 +2,6 @@
 #include <vector>
 #include <tuple>
 #include <algorithm>
-#include <functional>
-
-
-// #include <set>
 
 #define MAX_N 21
 #define MAX_M 30
@@ -21,8 +17,6 @@ int gun[MAX_M];
 int point[MAX_M];
 
 // 격자에 있는 총의 정보들 
-// set으로 제일 큰 총이 앞으로 오도록 함
-// set<int, greater<int>> grid[MAX_N][MAX_N]; 
 vector<int> grid[MAX_N][MAX_N]; 
 
 
@@ -36,7 +30,6 @@ bool InRange(int x, int y){
 // 같은 위치에 존재하는지 확인
 int IfExist(pair<int, int> cur_pos){
     for(int i = 0 ; i < m ; i++){
-        // if(i == num) continue;
         int x, y;
         tie(x, y) = pos[i];
         if (cur_pos == make_pair(x, y)) {
@@ -55,24 +48,6 @@ void HaveGun(int num, int x, int y){
     grid[x][y].erase(grid[x][y].begin());
 
     gun[num] = best;
-
-    // // 해당 칸에 총이 있으면 
-    // if(grid[x][y].size() > 0){
-    //     // num 플레이어가 총이 없으면 그냥 제일 센 총 가지기
-    //     int max_gun = *grid[x][y].begin();
-    //     if(gun[num] == 0){
-    //         gun[num] = max_gun;
-    //         grid[x][y].erase(max_gun);  // 격자에선 해당 총 없애기
-    //     }
-    //     else{
-    //         // 갖고 있는 총 vs 격차에 있는 총 중 센걸로 가지기
-    //         if(max_gun > gun[num]){
-    //             grid[x][y].insert(gun[num]);    // 갖고 있던 총 내려놓기
-    //             grid[x][y].erase(max_gun);      // 격자에서 총 없애기
-    //             gun[num] = max_gun;
-    //         }
-    //     }
-    // }
 }
 
 // x, y 위치에서 새로 들어온 num과 싸우기
