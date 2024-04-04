@@ -16,6 +16,10 @@ int op, turn, ans;
 
 pair<int, int> tagger_pos;  // 술래 정보 
 int tagger_dir;
+int back_x[MAX_N][MAX_N];   // 역추적 위해서 이전 칸의 정보를 저장
+int back_y[MAX_N][MAX_N];
+int dir[MAX_N][MAX_N];      
+
 int trees[MAX_N][MAX_N];      // 나무는 9 (겹치지 않음)
 
 struct Runner{
@@ -56,6 +60,8 @@ void MoveRunner(){
         if(!InRange(nx, ny)){
             // 벗어나면 방향 반대로 바꾸기
             dir = (dir + 2) % 4;
+            nx =  x + dx[dir];
+            ny = y + dy[dir];
             runner[i].dir = dir;
         }
         // 이동하려는 칸에 술래가 있으면 이동 X
@@ -70,42 +76,73 @@ void MoveRunner(){
 }
 
 void MoveTagger(){
-
-    // 정사각형 하나 채웠으면 정사각형 크기 키우거나 줄이기
-    if(cnt == square_len * square_len){
-        square_len += 2 * op;
-    }
-
     // 다음 칸으로 이동
     int nx = tagger_pos.first + dx[tagger_dir];
     int ny = tagger_pos.second + dy[tagger_dir];
+    // 역추적을 위해 이전 칸의 정보 저장
+    back_x[nx][ny] = tagger_pos.first;
+    back_y[nx][ny] = tagger_pos.second;
+
     tagger_pos = make_pair(nx, ny);
-    cnt += op;
+    dir[nx][ny] = tagger_dir; //역추적 위해 정보 저장(회전하기 전의 방향이 필요)
+    cnt ++;
 
-
-    // 이동한 칸이 (1, 1)이거나 중심이면 다시 반대로 회전 & cnt 줄이는 방식으로 바꾸기
-    // 정사각형 크기 변경 
-    if(tagger_pos == make_pair(1, 1) || tagger_pos == make_pair(n/2+1, n/2+1)){
-        op *= -1;
-        square_len += 2 * op;
+    // 이동한 칸이 (1, 1)이면 이동 방식 반대로 바꾸기
+    if(tagger_pos == make_pair(1, 1)){
+        op = -1;
         tagger_dir = (tagger_dir + 2) % 4;
         return;
     }
 
+    // 정사각형 하나 채웠으면 정사각형 크기 키우거나 줄이기
+    // & 기존 방향 유지
+    if(cnt == square_len * square_len){
+        square_len += 2;
+        return;
+    }
+    
     // 그 다음 이동하려는 칸이 현재 정사각형 밖이면 미리 방향 회전 시켜 놓기
     int nnx = nx + dx[tagger_dir];
     int nny = ny + dy[tagger_dir];
-
     if(!InSquare(nnx, nny)){
         tagger_dir = (tagger_dir + 1) % 4;
     }
 }
+
+
+// (1,1)에서 -> 중심 방향으로 
+void MoveTaggerReverse(){
+    int x, y;
+    tie(x, y) = tagger_pos;
+    
+    // 새로 이동할 칸 = MoveTagger 이동의 역추적 & 방향은 정반대로 
+    int nx = back_x[x][y]; 
+    int ny = back_y[x][y];
+    int d = (dir[nx][ny] + 2) % 4;    
+
+    tagger_pos = make_pair(nx, ny);
+    tagger_dir = d;
+
+    // 다시 시작 위치로 돌아왔을 경우
+    // 정사각형 3으로 시작
+    // cnt = 1로 시작
+    // 방향 정 반대로 
+    if(tagger_pos == make_pair(n/2+1, n/2+1)){
+        cnt = 1;
+        square_len = 3;
+        op = 1;
+        tagger_dir = (d + 2) % 4;
+    }
+
+}
+
 
 void CatchRunner(){
     // 현재 술래의 시야에서 현재칸 포함 3칸에 있는 도망자 잡기
     int x, y;
     int catch_cnt = 0;
     tie(x, y) = tagger_pos;
+
     for(int i = 0 ; i < 3 ; i++){
         if(!InRange(x, y)) continue;
 
@@ -120,7 +157,6 @@ void CatchRunner(){
             }
         }
 
-
         x = x + dx[tagger_dir];
         y = y + dy[tagger_dir];
     }
@@ -129,10 +165,9 @@ void CatchRunner(){
     ans += turn * catch_cnt;
 }
 
-
 int main(){
     // 입력
-    //freopen("input.txt", "r", stdin);
+    //freopen("input2.txt", "r", stdin);
     cin >> n >> m >> h >> k;
     for(int i = 0; i < m ; i++){    // 도망자 정보
         int x, y, d;
@@ -147,7 +182,7 @@ int main(){
 
     // 술래 시작 위치
     tagger_pos = make_pair(n/2+1, n/2+1);
-    square_len = 1; 
+    square_len = 3; 
     cnt = 1;
     op = 1;
 
@@ -159,7 +194,8 @@ int main(){
         MoveRunner();
 
         // Step 2. 술래 한 칸 이동
-        MoveTagger();
+        if(op == 1) MoveTagger();
+        else if (op == -1) MoveTaggerReverse();
 
         // Step 3. 술래가 도망자 잡기
         CatchRunner();
