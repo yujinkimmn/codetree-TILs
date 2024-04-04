@@ -107,37 +107,36 @@ void GetPoint(int x, int y){
     }
     ans += (cnt + 1) * (cnt + 1);   // 해당 순서의 제곱만큼 포인트 얻기
 }
+// turn 번째 라운드의 공을 던집니다.
+// 공을 던졌을 때 이를 받은 팀의 번호를 반환합니다.
+int ThrowBall(int turn) {
+    int t = (turn - 1) % (4 * n) + 1;
 
-// turn 번째 라운드의 공을 던지기
-// 공을 던졌을 때 이를 받은 팀의 번호를 리턴
-int ThrowBall(int turn){
-    int t = (turn - 1) % (4 * n) + 1;  // 4n턴을 넘어가면 1번째 턴으로 돌아가도록
-
-    // 1 ~ n 라운드 : 왼쪽 -> 오른쪽 
-    if(t <= n){
-        for(int i = 1; i <= n ; i++){
-            if(1 <= board[t][i] && board[i][i] <= 3){
-                // 공을 맞은 사람이 팀 내에서 몇번째 사람인지 찾기
+    if(t <= n) {
+        // 1 ~ n 라운드의 경우 왼쪽에서 오른쪽 방향으로 공을 던집니다.
+        for(int i = 1; i <= n; i++) {
+            if(1 <= board[t][i] && board[t][i] <= 3) {
+                // 사람이 있는 첫 번째 지점을 찾습니다.
+                // 찾게 되면 점수를 체크한 뒤 찾은 사람의 팀 번호를 저장합니다.
                 GetPoint(t, i);
                 return board_idx[t][i];
             }
         }
     }
-
-    // n+1 ~ 2n 라운드: 아래 -> 위
-    else if(t <= 2*n){
+    else if(t <= 2 * n) {
+        // n+1 ~ 2n 라운드의 경우 아래에서 윗쪽 방향으로 공을 던집니다.
         t -= n;
-        for(int i = n; i >= 1 ; i--){
-            if(1 <= board[i][t] && board[i][t] <= 3){
-                // 공을 맞은 사람이 팀 내에서 몇번째 사람인지 찾기
-                GetPoint(i, t);
-                return board_idx[i][t];
+        for(int i = 1; i <= n; i++) {
+            if(1 <= board[n + 1 - i][t] && board[n + 1 - i][t] <= 3) {
+                // 사람이 있는 첫 번째 지점을 찾습니다.
+                // 찾게 되면 점수를 체크한 뒤 찾은 사람의 팀 번호를 저장합니다.
+                GetPoint(n + 1 - i, t);
+                return board_idx[n + 1 - i][t];
             }
         }
     }
-
-    // 2n+1 ~ 3n 라운드: 오른쪽 -> 왼쪽
-    else if(t <= 3*n){
+    else if(t <= 3 * n) {
+        // 2n+1 ~ 3n 라운드의 경우 오른쪽에서 왼쪽 방향으로 공을 던집니다.
         t -= (2 * n);
         for(int i = 1; i <= n; i++) {
             if(1 <= board[n + 1 - t][n + 1 - i] && board[n + 1 - t][n + 1 - i] <= 3) {
@@ -148,9 +147,8 @@ int ThrowBall(int turn){
             }
         }
     }
-
-    // 3n+1 ~ 4n 라운드: 위 -> 아래
     else {
+        // 3n+1 ~ 4n 라운드의 경우 위에서 아랫쪽 방향으로 공을 던집니다.
         t -= (3 * n);
         for(int i = 1; i <= n; i++) {
             if(1 <= board[i][n + 1 - t] && board[i][n + 1 - t] <= 3) {
@@ -161,8 +159,65 @@ int ThrowBall(int turn){
             }
         }
     }
-    return 0;   // 공이 그대로 지나가면 0을 반환
+    // 공이 그대로 지나간다면 0을 반환합니다.
+    return 0;
 }
+
+// // turn 번째 라운드의 공을 던지기
+// // 공을 던졌을 때 이를 받은 팀의 번호를 리턴
+// int ThrowBall(int turn){
+//     int t = (turn - 1) % (4 * n) + 1;  // 4n턴을 넘어가면 1번째 턴으로 돌아가도록
+
+//     // 1 ~ n 라운드 : 왼쪽 -> 오른쪽 
+//     if(t <= n){
+//         for(int i = 1; i <= n ; i++){
+//             if(1 <= board[t][i] && board[i][i] <= 3){
+//                 // 공을 맞은 사람이 팀 내에서 몇번째 사람인지 찾기
+//                 GetPoint(t, i);
+//                 return board_idx[t][i];
+//             }
+//         }
+//     }
+
+//     // n+1 ~ 2n 라운드: 아래 -> 위
+//     else if(t <= 2*n){
+//         t -= n;
+//         for(int i = 1; i <= n; i++) {
+//             if(1 <= board[n + 1 - i][t] && board[n + 1 - i][t] <= 3) {
+//                 // 공을 맞은 사람이 팀 내에서 몇번째 사람인지 찾기
+//                 GetPoint(i, t);
+//                 return board_idx[i][t];
+//             }
+//         }
+//     }
+
+//     // 2n+1 ~ 3n 라운드: 오른쪽 -> 왼쪽
+//     else if(t <= 3*n){
+//         t -= (2 * n);
+//         for(int i = 1; i <= n; i++) {
+//             if(1 <= board[n + 1 - t][n + 1 - i] && board[n + 1 - t][n + 1 - i] <= 3) {
+//                 // 사람이 있는 첫 번째 지점을 찾습니다.
+//                 // 찾게 되면 점수를 체크한 뒤 찾은 사람의 팀 번호를 저장합니다.
+//                 GetPoint(n + 1 - t, n + 1 - i);
+//                 return board_idx[n + 1 - t][n + 1 - i];
+//             }
+//         }
+//     }
+
+//     // 3n+1 ~ 4n 라운드: 위 -> 아래
+//     else {
+//         t -= (3 * n);
+//         for(int i = 1; i <= n; i++) {
+//             if(1 <= board[i][n + 1 - t] && board[i][n + 1 - t] <= 3) {
+//                 // 사람이 있는 첫 번째 지점을 찾습니다.
+//                 // 찾게 되면 점수를 체크한 뒤 찾은 사람의 팀 번호를 저장합니다.
+//                 GetPoint(i, n + 1 - t);
+//                 return board_idx[i][n + 1 - t];
+//             }
+//         }
+//     }
+//     return 0;   // 공이 그대로 지나가면 0을 반환
+// }
 
 // 공을 획득한 팀은 이동 방향을 반대로
 void Reverse(int got_ball_idx){
