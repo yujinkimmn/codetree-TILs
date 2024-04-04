@@ -4,28 +4,24 @@
 #include <tuple>
 
 #define MAX_N 100
-#define MAX_M 10000
-
 using namespace std;
 
 int n, m, h, k;
-int cnt;    // 정사각형 개수 세기 용도
-int edge[2];    // 정사각형의 모서리 표시 용도
-int square_len;
-int op, turn, ans;
+int turn, ans;
 
-pair<int, int> tagger_pos;  // 술래 정보 
-int tagger_dir;
-int back_x[MAX_N][MAX_N];   // 역추적 위해서 이전 칸의 정보를 저장
-int back_y[MAX_N][MAX_N];
-int dir[MAX_N][MAX_N];      
+pair<int, int> tagger_pos;  // 술래 현재 위치
+bool forward_facing;        // 술래가 움직이는 방향이 정방향이면 true, 아니라면 false
 
-int trees[MAX_N][MAX_N];      // 나무는 9 (겹치지 않음)
+//  현재 위치에서 술래가 움직여야 할 방향
+int tagger_next_dir[MAX_N][MAX_N];  // 정방향
+int tagger_rev_dir[MAX_N][MAX_N];   // 역방향 
 
-struct Runner{
+bool tree[MAX_N][MAX_N];      // 나무 정보
+
+struct Hider{
     int x, y, dir;
 };
-vector<Runner> runner;   // 도망자 정보 저장
+vector <Hider> hider;   // 도망자 정보 저장
 
 int dx[] = {-1, 0, 1, 0};   // 상-우-하-좌
 int dy[] = {0, 1, 0, -1};
@@ -35,18 +31,39 @@ bool InRange(int x, int y){
     return x >= 1 && y >= 1 && x <= n && y <= n;
 }
 
-bool InSquare(int x, int y){
-    int center = n / 2 + 1;
-    int edge1 = center + (square_len-1)/2;   // 큰 경계값
-    int edge2 = center - (square_len-1)/2;   // 작은 경계값
-    return x <= edge1 && edge2 <= x && edge2 <= y && y <= edge1;
+
+// 정중앙 ~ 끝까지 움직이는 경로 계산
+void InitTaggerPath(){
+    // 시작 위치
+    int curr_x = n/2 + 1, curr_y = n/2 + 1;
+    // 방향, 해당 방향으로 이동할 횟수
+    int move_dir = 0, move_num = 1; 
+
+    while(curr_x > 1 || curr_y > 1){
+        for(int i = 0 ; i < move_num ; i++){
+            tagger_next_dir[curr_x][curr_y] = move_dir;     // 방향 저장
+            curr_x += dx[move_dir];     // 한 칸 이동 
+            curr_y += dy[move_dir]; 
+            tagger_rev_dir[curr_x][curr_y] = (move_dir < 2) ? (move_dir + 2) : (move_dir -2);  // 역방향에서는 정방향의 반대로 저장
+
+            // 이동하다가 (1, 1)로 오면 이동 종료
+            if(curr_x == 1 && curr_y == 1)
+                break;
+        }
+
+        // 방향 회전
+        move_dir = (move_dir + 1) % 4;
+        // 만약 현재 방향이 아래 혹은 위가 된 경우
+        // 특정 방향으로 움직여야 할 횟수를 1 증가
+        if (move_dir == 0 || move_dir == 2) move_num++;
+    }
 }
 
-void MoveRunner(){
+void MoveHider(){
     // 도망자 한 명씩 이동
-    for(int i = 0; i < m ; i++){
-        int x = runner[i].x, y = runner[i].y; 
-        int dir = runner[i].dir;
+    for(int i = 0; i < hider.size() ; i++){
+        int x = hider[i].x, y = hider[i].y; 
+        int dir = hider[i].dir;
 
         // 술래와 거리가 3 이하인지 판단
         int dist = abs(tagger_pos.first - x) + abs(tagger_pos.second - y);
@@ -62,103 +79,69 @@ void MoveRunner(){
             dir = (dir + 2) % 4;
             nx =  x + dx[dir];
             ny = y + dy[dir];
-            runner[i].dir = dir;
+            hider[i].dir = dir;
         }
         // 이동하려는 칸에 술래가 있으면 이동 X
         if (make_pair(nx, ny) == tagger_pos) continue;
 
         // 술래 없으면 한 칸 이동하기 
         else {
-            runner[i].x = nx;
-            runner[i].y = ny;
+            hider[i].x = nx;
+            hider[i].y = ny;
         }
     }
 }
 
 void MoveTagger(){
-    // 다음 칸으로 이동
-    int nx = tagger_pos.first + dx[tagger_dir];
-    int ny = tagger_pos.second + dy[tagger_dir];
-    // 역추적을 위해 이전 칸의 정보 저장
-    back_x[nx][ny] = tagger_pos.first;
-    back_y[nx][ny] = tagger_pos.second;
-
-    tagger_pos = make_pair(nx, ny);
-    dir[nx][ny] = tagger_dir; //역추적 위해 정보 저장(회전하기 전의 방향이 필요)
-    cnt ++;
-
-    // 이동한 칸이 (1, 1)이면 이동 방식 반대로 바꾸기
-    if(tagger_pos == make_pair(1, 1)){
-        op = -1;
-        tagger_dir = (tagger_dir + 2) % 4;
-        return;
-    }
-
-    // 정사각형 하나 채웠으면 정사각형 크기 키우거나 줄이기
-    // & 기존 방향 유지
-    if(cnt == square_len * square_len){
-        square_len += 2;
-        return;
-    }
-    
-    // 그 다음 이동하려는 칸이 현재 정사각형 밖이면 미리 방향 회전 시켜 놓기
-    int nnx = nx + dx[tagger_dir];
-    int nny = ny + dy[tagger_dir];
-    if(!InSquare(nnx, nny)){
-        tagger_dir = (tagger_dir + 1) % 4;
-    }
-}
-
-
-// (1,1)에서 -> 중심 방향으로 
-void MoveTaggerReverse(){
+    // 이동할 방향 찾기
     int x, y;
     tie(x, y) = tagger_pos;
-    
-    // 새로 이동할 칸 = MoveTagger 이동의 역추적 & 방향은 정반대로 
-    int nx = back_x[x][y]; 
-    int ny = back_y[x][y];
-    int d = (dir[nx][ny] + 2) % 4;    
 
-    tagger_pos = make_pair(nx, ny);
-    tagger_dir = d;
+    int move_dir;
+    if(forward_facing) move_dir = tagger_next_dir[x][y];
+    else move_dir = tagger_rev_dir[x][y];
 
-    // 다시 시작 위치로 돌아왔을 경우
-    // 정사각형 3으로 시작
-    // cnt = 1로 시작
-    // 방향 정 반대로 
-    if(tagger_pos == make_pair(n/2+1, n/2+1)){
-        cnt = 1;
-        square_len = 3;
-        op = 1;
-        tagger_dir = (d + 2) % 4;
+    // 다음 칸으로 이동
+    tagger_pos = make_pair(x + dx[move_dir], y + dy[move_dir]);
+     
+    if (!InRange(tagger_pos.first , tagger_pos.second)){
+        cout<< "tagger 이동 범위 벗어남" << "\n";
     }
-
+    // 이동한 칸이 (1, 1) 혹은 중앙이면 이동 방식 반대로 바꾸기
+    if(tagger_pos == make_pair(1, 1) && forward_facing){
+        forward_facing = false;
+    }
+    if (tagger_pos == make_pair( n / 2 + 1, n / 2 + 1) && !forward_facing){
+        forward_facing = true;
+    }
 }
 
-
-void CatchRunner(){
+void CatchHider(){
     // 현재 술래의 시야에서 현재칸 포함 3칸에 있는 도망자 잡기
     int x, y;
     int catch_cnt = 0;
     tie(x, y) = tagger_pos;
 
+    int move_dir;
+    if(forward_facing) move_dir = tagger_next_dir[x][y];
+    else move_dir = tagger_rev_dir[x][y];
+
     for(int i = 0 ; i < 3 ; i++){
         if(!InRange(x, y)) continue;
 
-        if(trees[x][y] != 9) {
+        if(!tree[x][y]) {
             // 나무가 없고, 해당 칸에 도망자가 있으면 잡기
-            for(auto it = runner.begin(); it != runner.end(); ){
+            for(auto it = hider.begin(); it != hider.end(); ){
                 if(it->x == x && it->y == y){   
-                    it = runner.erase(it);
+                    it = hider.erase(it);
                     catch_cnt++;
                 }
                 else it++;
             }
         }
 
-        x = x + dx[tagger_dir];
-        y = y + dy[tagger_dir];
+        x = x + dx[move_dir];
+        y = y + dy[move_dir];
     }
 
     // t턴 x 잡은 도망자 수 만큼 점수 얻기
@@ -172,33 +155,32 @@ int main(){
     for(int i = 0; i < m ; i++){    // 도망자 정보
         int x, y, d;
         cin >> x >> y >> d;
-        runner.push_back({x, y, d});
+        hider.push_back({x, y, d});
     }
     for(int i = 0 ; i < h ; i++){   // 나무 정보
         int x, y;
         cin >> x >> y;
-        trees[x][y] = 9;
+        tree[x][y] = true;
     }
 
-    // 술래 시작 위치
+    // 술래 시작 위치 & 경로를 미리 저장
     tagger_pos = make_pair(n/2+1, n/2+1);
-    square_len = 3; 
-    cnt = 1;
-    op = 1;
+    forward_facing = true;
+    InitTaggerPath();
+
 
     // k턴 동안 반복 
     while(k--){
         turn++;
 
         // Step 1. 도망자 움직이기 
-        MoveRunner();
+        MoveHider();
 
-        // Step 2. 술래 한 칸 이동
-        if(op == 1) MoveTagger();
-        else if (op == -1) MoveTaggerReverse();
+        // Step 2. 술래 움직이기
+        MoveTagger();
 
         // Step 3. 술래가 도망자 잡기
-        CatchRunner();
+        CatchHider();
     }
     cout << ans; 
 }
