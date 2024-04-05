@@ -64,6 +64,7 @@ tuple<int, int, int> GetNextPos(int x, int y, int move_dir){
     return make_tuple(x, y, move_dir);
 }
 
+
 // Step 2. 모든 몬스터를 하나씩 이동
 void MonsterMove(){
     // 몬스터 이동 결과를 임시 저장할 벡터 초기화
@@ -76,10 +77,10 @@ void MonsterMove(){
     
     for(int i = 0 ; i < 4 ; i++){
         for(int j = 0 ; j < 4; j++){       
-            if((int)monster[i][j].empty()) continue;  
             // 몬스터들이 각각 자신의 방향대로 이동
             for(int k = 0 ; k < (int) monster[i][j].size(); k++){
                 int dir = monster[i][j][k];
+                // 이동할 수 있는 방향 받아오기
                 tuple<int, int, int> next_pos = GetNextPos(i, j, dir);
                 int x, y, next_dir;
                 tie(x, y, next_dir) = next_pos;
@@ -96,71 +97,78 @@ void MonsterMove(){
     }
 }
 
-// 최대 수의 몬스터를 먹을 수 있는 팩맨 경로 찾기 
-void DFS(int cnt, vector<pair<int, int>> p, int eaten){
-    if(cnt == 3){   // 종료 조건
-        if (eaten > max_eaten){
-            path = p;
-            max_eaten = eaten;
+// 해당 방향으로 이동했을 때 팩맨이 잡을 수 있는 몬스터의 수
+int GetKilledNum(int dir1, int dir2, int dir3){
+    int dirs[] = {dir1, dir2, dir3};
+    int x = packman_pos.first, y = packman_pos.second;
+    int killed_num = 0;
+
+    // 방문한 적 있는 칸인지 표시
+    vector<pair <int, int> > v_pos;
+
+    for(int i = 0; i < 3; i++){
+        int nx = x + dx2[dirs[i]], ny = y + dy2[dirs[i]];
+
+        if(!InRange(nx, ny)) return -1; // 범위 넘어가면 아예 이동 X
+
+        if (find(v_pos.begin(), v_pos.end(), make_pair(nx, ny)) == v_pos.end()){
+            killed_num += (int) monster[nx][ny].size();
+            v_pos.push_back({nx, ny});
         }
-        return;
+        x = nx; y = ny;
     }
+    return killed_num;
+}
 
-    // 4 방향 탐색하며 탐색
-    for(int d = 0; d < 4; d++){
-        int nx = p.back().first + dx2[d];
-        int ny = p.back().second + dy2[d];
 
-        if(!InRange(nx, ny)) continue;
-        // 해당 칸에 몬스터가 있고 && 현재 경로에서 방문한 적 없을때만 잡아먹은 개수 카운트
-        int new_eaten = 0;
-        // 단, 첫번째는 팩맨 초기 위치라 몬스터 잡아먹을 수 있음
-        if(find(p.begin() + 1, p.end(), make_pair(nx, ny)) == p.end()){
-            new_eaten = eaten + (int)monster[nx][ny].size();
+// 팩맨에 의해 죽은 몬스터 -> 시체로 바꾸기
+void DoKill(tuple<int, int, int> route){
+    // 팩맨이 이동한 3칸을 하나씩 탐색
+    int dir1, dir2, dir3;
+    tie(dir1, dir2, dir3) = route;
+    int dirs[3] = {dir1, dir2, dir3};
+
+
+    for(int i = 0; i < 3; i++){
+        int d = dirs[i];
+        int nx = packman_pos.first + dx2[d];
+        int ny = packman_pos.second + dy2[d];
+
+        // 시체 추가
+
+        // 잡아먹힌 몬스터는 (현재 턴 + 2)을 없어지는 시간으로 기록해서 시체로 바꾸기 
+        for(int j = 0; j < (int)monster[nx][ny].size(); j++){
+            dead[nx][ny].push_back({cur_turn + 2});   // 시체로 기록
         }
+        monster[nx][ny].clear();  // 몬스터는 없애기
 
-        p.push_back({nx, ny});
-
-        DFS(cnt+1, p, new_eaten);
-
-        // 원상복구
-        p.pop_back();
+        packman_pos = make_pair(nx, ny);
     }
 }
+
 
 // Step 3. 팩맨 이동 
 void PackmanMove(){
     // 필요한 변수들 초기화
-    max_eaten = -1;
-    path.clear();
-    
-    // 몬스터를 가장 많이 먹을 수 있는 방법 dfs로 찾기
-    vector<pair<int, int>> start;
-    start.push_back(packman_pos);
+    int max_eaten = -1;
+    tuple<int, int, int> best_route;
 
-    DFS(0, start, 0);
-    
-}
+    // 우선순위 대로 탐색
+    for (int i = 0; i < 4; i++){
+        for(int j = 0 ; j < 4; j++){
+            for(int k = 0 ; k < 4; k++){
+                int m_cnt = GetKilledNum(i, j, k);  // ex. 상상상 조합으로 잡을 수 있는 몬스터의 수
 
-// 팩맨에 의해 죽은 몬스터 -> 시체로 바꾸기
-void DeleteMonster(){
-    // 팩맨이 이동한 3칸을 하나씩 탐색
-    // 단, 팩맨이 시작한 칸은 제외
-    for(int i = 1; i <= 3; i++){
-        int x = path[i].first;
-        int y = path[i].second;
-
-        if(monster[x][y].empty()) continue;
-
-        // 잡아먹힌 몬스터는 (현재 턴 + 2)을 없어지는 시간으로 기록해서 시체로 바꾸기 
-        for(int j = 0; j < (int)monster[x][y].size(); j++){
-            dead[x][y].push_back({cur_turn + 2});   // 시체로 기록
+                if(m_cnt > max_eaten){
+                    max_eaten = m_cnt;
+                    best_route = make_tuple(i, j, k);
+                }
+            }
         }
-        monster[x][y].clear();  // 몬스터는 없애기
     }
+    
+    DoKill(best_route);    // 팩맨이 이동한 경로에 있던 몬스터 -> 시체로 돌리기
 
-    // 팩맨의 위치를 마지막 이동 위치로 바꿔주기
-    packman_pos = path.back();
 }
 
 // Step 4. 시체 소멸
@@ -184,19 +192,17 @@ void DeleteDead(){
 void MakeMonster(){
     for(int i = 0; i < 4 ; i++){
         for (int j = 0; j < 4; j++){
-            // if(egg[i][j].empty()) continue;
-
             // 동일한 방향으로 몬스터를 부화시킴
             for(int e = 0; e < (int) egg[i][j].size(); e++){
                 monster[i][j].push_back(egg[i][j][e]);
             }
-            egg[i][j].clear();  // 부활 완료
+            egg[i][j].clear(); 
         }
     }
 
 }
 int main(){
-    //freopen("input.txt", "r", stdin);
+    // freopen("input.txt", "r", stdin);
     cin >> m >> t;
     int x, y; cin >> x >> y;
     // (0, 0)을 시작으로 
@@ -215,8 +221,8 @@ int main(){
 
         // Step 2. 몬스터 이동
         MonsterMove();
-        // cout << cur_turn << "번째 몬스터 이동 결과\n";
 
+        // cout << cur_turn << "번째 몬스터 이동 결과\n";
         // for(int i = 0; i < 4 ; i++){
         //     for(int j = 0 ; j < 4 ; j++){
         //         int cnt = (int) monster[i][j].size();
@@ -225,17 +231,18 @@ int main(){
         //     cout << "\n";
         // }
         // cout << "\n";
+
+
         // Step 3. 팩맨 이동 
         PackmanMove();
-        DeleteMonster();    // 팩맨이 이동한 경로에 있던 몬스터 -> 시체로 돌리기
 
         // Step 4. 시체 소멸 
         DeleteDead();
 
         // Step 5. 알 부화
         MakeMonster();
-        // cout << cur_turn << "번째 턴 결과\n";
 
+        // cout << cur_turn << "번째 턴 결과\n";
         // for(int i = 0; i < 4 ; i++){
         //     for(int j = 0 ; j < 4 ; j++){
         //         int cnt = (int) monster[i][j].size();
