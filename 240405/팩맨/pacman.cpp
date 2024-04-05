@@ -18,11 +18,11 @@ vector<int> tmp[4][4];
 int dx[8] = {-1, -1, 0, 1, 1, 1, 0, -1};
 int dy[8] = {0, -1, -1, -1, 0, 1, 1, 1};
 
-// DFS에 사용할 변수들
+// 팩맨 이동에 사용할 변수들
 int dx2[4] = {-1, 0, 1, 0};     // 상 - 좌 - 하 - 우 우선
 int dy2[4] = {0, -1, 0, 1};
-vector<pair<int,int>> path;     // 팩맨이 이동할 경로
-int max_eaten;                  // 먹은 몬스터의 수 
+
+
 
 bool InRange(int x, int y){
     return 0 <= x && x < 4 && 0 <= y && y < 4;
@@ -67,13 +67,13 @@ tuple<int, int, int> GetNextPos(int x, int y, int move_dir){
 
 // Step 2. 모든 몬스터를 하나씩 이동
 void MonsterMove(){
+
     // 몬스터 이동 결과를 임시 저장할 벡터 초기화
     for(int i = 0 ; i < 4 ; i++){
         for(int j = 0 ; j < 4; j++){
             tmp[i][j].clear();
         }
     }
-
     
     for(int i = 0 ; i < 4 ; i++){
         for(int j = 0 ; j < 4; j++){       
@@ -166,9 +166,7 @@ void PackmanMove(){
             }
         }
     }
-    
     DoKill(best_route);    // 팩맨이 이동한 경로에 있던 몬스터 -> 시체로 돌리기
-
 }
 
 // Step 4. 시체 소멸
@@ -218,40 +216,16 @@ int main(){
 
         //Step 1. 몬스터 복제
         Duplicate();
-
         // Step 2. 몬스터 이동
         MonsterMove();
-
-        // cout << cur_turn << "번째 몬스터 이동 결과\n";
-        // for(int i = 0; i < 4 ; i++){
-        //     for(int j = 0 ; j < 4 ; j++){
-        //         int cnt = (int) monster[i][j].size();
-        //         cout << cnt << " ";
-        //     }
-        //     cout << "\n";
-        // }
-        // cout << "\n";
-
-
         // Step 3. 팩맨 이동 
         PackmanMove();
-
         // Step 4. 시체 소멸 
         DeleteDead();
-
         // Step 5. 알 부화
         MakeMonster();
-
-        // cout << cur_turn << "번째 턴 결과\n";
-        // for(int i = 0; i < 4 ; i++){
-        //     for(int j = 0 ; j < 4 ; j++){
-        //         int cnt = (int) monster[i][j].size();
-        //         cout << cnt << " ";
-        //     }
-        //     cout << "\n";
-        // }
-        // cout << "\n";
     }
+
     // 살아 남은 몬스터 수
     int ans = 0;
     for(int i = 0 ; i < 4 ; i++){
