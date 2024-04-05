@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <tuple>
 #include <algorithm>
 
 using namespace std;
@@ -22,7 +23,6 @@ int dx2[4] = {-1, 0, 1, 0};     // 상 - 좌 - 하 - 우 우선
 int dy2[4] = {0, -1, 0, 1};
 vector<pair<int,int>> path;     // 팩맨이 이동할 경로
 int max_eaten;                  // 먹은 몬스터의 수 
-// int visited[4][4];
 
 bool InRange(int x, int y){
     return 0 <= x && x < 4 && 0 <= y && y < 4;
@@ -48,6 +48,22 @@ bool CanMove(int x, int y){
         return false;
 }
 
+tuple<int, int, int> GetNextPos(int x, int y, int move_dir){
+    // 8 방향 중 이동 가능한 방향 찾기
+    for(int offset = 0 ; offset < 8 ; offset++){
+        int new_dir = (move_dir + offset) % 8;
+        int nx = x + dx[new_dir];
+        int ny = y + dy[new_dir];
+        // 이동 가능하면 새로운 칸으로 이동
+        if(CanMove(nx, ny)){
+            return make_tuple(nx, ny, new_dir);
+        }
+    }
+
+    // 이동 가능한 칸 못찾았으면 원래 자리로
+    return make_tuple(x, y, move_dir);
+}
+
 // Step 2. 모든 몬스터를 하나씩 이동
 void MonsterMove(){
     // 몬스터 이동 결과를 임시 저장할 벡터 초기화
@@ -63,26 +79,11 @@ void MonsterMove(){
             if((int)monster[i][j].empty()) continue;  
             // 몬스터들이 각각 자신의 방향대로 이동
             for(int k = 0 ; k < (int) monster[i][j].size(); k++){
-                pair<int, int> new_pos = make_pair(-1, -1);
-
-                // 8 방향 중 이동 가능한 방향 찾기
                 int dir = monster[i][j][k];
-                for(int offset = 0 ; offset < 8 ; offset++){
-                    int new_dir = (dir + offset) % 8;
-                    int nx = i + dx[new_dir];
-                    int ny = j + dy[new_dir];
-                    // 이동 가능하면 새로운 칸으로 이동
-                    if(CanMove(nx, ny)){
-                        new_pos = make_pair(nx, ny);
-                        tmp[nx][ny].push_back(new_dir);
-                        break;
-                    }
-                }
-
-                // 이동 가능한 칸 못찾았으면 원래 자리에 넣기
-                if (new_pos == make_pair(-1, -1)){
-                    tmp[i][j].push_back(dir);
-                }  
+                tuple<int, int, int> next_pos = GetNextPos(i, j, dir);
+                int x, y, next_dir;
+                tie(x, y, next_dir) = next_pos;
+                tmp[x][y].push_back(next_dir);
             }
         }
     }
@@ -123,7 +124,6 @@ void DFS(int cnt, vector<pair<int, int>> p, int eaten){
         DFS(cnt+1, p, new_eaten);
 
         // 원상복구
-        // visited[nx][ny] = 0;
         p.pop_back();
     }
 }
