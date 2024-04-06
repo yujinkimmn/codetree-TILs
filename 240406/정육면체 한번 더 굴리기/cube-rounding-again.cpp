@@ -9,7 +9,8 @@ int n, m;
 int grid[20][20];
 pair<int, int> dice_pos = make_pair(0, 0);  // 주사위 시작 위치
 int dice_dir = 0;   // 초기 방향 = 오른쪽
-int dice[6] = {6, 1, 2, 5, 4, 3};   // 주사위 상태 아래/위/앞/뒤/좌/우 순으로 저장
+
+int u = 1, f = 2, r = 3;    // 주사위 초기 상태(위, 앞, 오른쪽)
 
 int dx[4] = {0, 1, 0, -1}; // 우, 하, 좌, 상 순
 int dy[4] = {1, 0, -1, 0};
@@ -21,41 +22,6 @@ int score;
 
 bool InRange(int x, int y){
     return 0 <= x && x < n && 0 <= y && y < n;
-}
-void RightRoll(){
-    int tmp[6] = {0, };
-    // 아래위 <-> 좌우
-    // 아래<-> 위
-    tmp[0] = dice[5];
-    tmp[1] = dice[4];
-    tmp[4] = dice[0];
-    tmp[5] = dice[1];
-
-    tmp[2] = dice[2];
-    tmp[3] = dice[3];
-
-    // 결과 옮기기
-    for(int i = 0 ; i < 6; i++){
-        dice[i] = tmp[i];
-    }
-}
-
-void DownRoll(){
-    int tmp[6] = {0, };
-    // 아래위 <-> 앞뒤
-    // 앞<->뒤
-    tmp[0] = dice[2];
-    tmp[1] = dice[3];
-    tmp[2] = dice[1];
-    tmp[3] = dice[0];
-
-    tmp[4] = dice[4];
-    tmp[5] = dice[5];
-
-    // 결과 옮기기
-    for(int i = 0 ; i < 6; i++){
-        dice[i] = tmp[i];
-    }
 }
 
 void RollDice(){
@@ -73,17 +39,17 @@ void RollDice(){
     dice_pos = make_pair(nx, ny);
 
     // 주사위도 알맞게 회전시키기
-    if(dice_dir == 0){  // 오른쪽
-        RightRoll();
+    if(dice_dir == 0){  // 오른쪽 회전
+       tie(u, f, r) = make_tuple(7-r, f, u);
     }
-    else if(dice_dir == 2){ // 왼쪽은 오른쪽 3번 실행
-        for (int i = 0 ; i < 3; i++) RightRoll();
+    else if (dice_dir == 1){    // 아래쪽 회전
+        tie(u, f, r) = make_tuple(7-f, u, r);
     }
-    else if (dice_dir == 1){    // 아래
-        DownRoll();
+    else if(dice_dir == 2){ // 왼쪽 회전 
+        tie(u, f, r) = make_tuple(r, f, 7-u);
     }
-    else if(dice_dir == 3){ // 위쪽은 아래 3번 실행
-        for (int i = 0 ; i < 3; i++) DownRoll();
+    else if(dice_dir == 3){ // 위쪽 회전
+        tie(u, f, r) = make_tuple(f, 7-u, r);
     }
 }
 
@@ -128,7 +94,7 @@ void AddScore(){
 // Step 3. 주사위 다음 이동방향 정하기
 void FindNextDir(){
     // 주사위 아랫면 vs 격자값 비교
-    int dice_value = dice[0];
+    int dice_value = 7 - u;
     int grid_value = grid[dice_pos.first][dice_pos.second];
 
     if(dice_value > grid_value){
