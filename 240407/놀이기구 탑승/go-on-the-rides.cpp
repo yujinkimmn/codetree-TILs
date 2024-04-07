@@ -20,6 +20,10 @@ int scores[5] = {0, 1, 10, 100, 1000};
 int dx[4] = {-1, 1, 0, 0}; 
 int dy[4] = {0, 0, -1, 1};
 
+// 칸의 상태
+// 좋아하는 친구 수, 빈칸수, -행, -열
+typedef tuple<int, int, int, int> Cell;
+
 bool InRange(int x, int y){
     return 0 <= x && x < n && 0 <= y && y < n;
 }
@@ -28,10 +32,7 @@ bool InRange(int x, int y){
 // num번째 학생이 앉을 자리 찾기 
 void StudentSit(int num){
     // 초기화 
-    pair<int, int> cur_pos = make_pair(-1, -1);
-    int like_cnt_best = -1; 
-    int empty_cnt_best = -1;
-    int n0 = likes[num][0]; 
+    Cell best_cell = make_tuple(0, 0, -(n+1), -(n+1));
     
     // 격자 순서대로 탐색
     for(int r = 0; r < n ; r++){
@@ -54,23 +55,20 @@ void StudentSit(int num){
                     like_cnt++;
                 }
             }
+            
+            Cell curr = make_tuple(like_cnt, empty_cnt, -r, -c);
 
-            // 좋아하는 친구 수 -> 빈자리 수 비교 
-            // 좋아하는 친구수가 더 많거나
-            if(like_cnt > like_cnt_best ||  
-             // 좋아하는 친구수 같은데 빈 자리수가 더 많은 경우만 업데이트
-            (like_cnt == like_cnt_best && empty_cnt > empty_cnt_best)) { 
-                like_cnt_best = like_cnt;
-                empty_cnt_best = empty_cnt;
-                cur_pos = make_pair(r, c);
+            if (curr > best_cell){
+                best_cell = curr;
             }
         }
     }
     int x, y;
-    tie(x, y) = cur_pos;
+    tie(ignore, ignore, x, y) = best_cell;
     // 최종 자리에 앉히기
-    seats[x][y] = n0;   
-    pos.push_back(make_pair(x, y));
+    int n0 = likes[num][0]; 
+    seats[-x][-y] = n0;   
+    pos.push_back(make_pair(-x, -y));
 }
 
 // 현재 학생의 점수를 계산
@@ -102,6 +100,7 @@ int main(){
         likes.push_back({n0, n1, n2, n3, n4});
     }
 
+    int dum = -1;
     // 순서대로 학생 탑승
     for(int i = 0 ; i < n*n ; i++){
         StudentSit(i);
