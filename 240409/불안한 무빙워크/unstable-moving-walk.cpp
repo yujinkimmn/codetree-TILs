@@ -13,7 +13,7 @@ vector<int> people;
 void Rotate(vector<int> &v){
     vector <int> tmp;
     for(int i = 0; i < 2 * n; i++){
-        tmp.push_back(v[(i - 1 + 6) % 6]);
+        tmp.push_back(v[(i - 1 + 2 * n) % (2 * n)]);
     }
     v = tmp;
 }
