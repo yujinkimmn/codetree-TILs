@@ -20,7 +20,8 @@ void Rotate(vector<int> &v){
 
 void MovePeople(){
     // 사람들은 0 ~ n-1번째 칸에만 있음 
-    for(int i = 0; i < n - 1 ; i++){
+    // 가장 먼저 올라간 사람 부터 하려면 n-2 부터 0까지 탐색
+    for(int i = n - 2;  i >= 0 ; i--){
         if(!people[i]) continue;
         // 앞 칸에 사람이 없고 안정성 1 이상인 경우에만 이동 가능 
         if(!people[i + 1] && safety[i + 1] >= 1) {
