@@ -51,8 +51,7 @@ pair<int, int> FindPlayerPos(int num){
 
 // 해당 칸이 격자 벗어나지 않고, 계약이 없는지 확인
 bool CanGo(int x, int y){
-    return (contact[x][y] == make_pair(0, 0) && 
-            0 <= x && x < n && 0 <= y && y < n);
+    return (0 <= x && x < n && 0 <= y && y < n) && (contact[x][y] == make_pair(0, 0));
 }
 
 void MovePlayer(){
@@ -63,51 +62,55 @@ void MovePlayer(){
     for(auto it = player.begin(); it != player.end(); it++){
         int num = it->first;
         int dir = it->second;
-        int flag = 0;   // 계약 없는칸 찾았는지 여부
+        // 독점 계약 없는칸 찾았는지
+        int flag = 0;   
+        // 플레이어 현재 위치
         pair<int, int> pos = FindPlayerPos(num);
-
-        pair<int, int> mine = make_pair(-1, -1);
-        int mine_dir = -1;
 
         // 바라보고 있는 방향의 우선순위에 따라 이동할 수 있는 칸 찾기
         for(int d = 0; d < 4; d++){
             int new_dir = priority[num][dir][d];
             int nx = pos.first + dx[new_dir];
             int ny = pos.second + dy[new_dir];
-
-            // 본인이 독점 계약 한 곳이면 저장해놓기
-            if(contact[nx][ny].first == num){
-                mine_dir = new_dir;
-                mine = make_pair(nx, ny);
-            }
             // 격자 벗어나지 않고, 계약 없는 칸이면 
-            else if(CanGo(nx, ny)){
+            if(CanGo(nx, ny)){
                 flag = 1;
                 it->second = new_dir;
 
                 // 아무도 없는 칸이면 그냥 이동 
-                if (!tmp[nx][ny]) tmp[nx][ny] = num;
+                if (!tmp[nx][ny]){
+                    tmp[nx][ny] = num;
+                }
+                // 누가 있다면 작은 번호가 남기
                 else{
-                    // 누가 있다면 작은 번호가 남기
-                    if(num < tmp[nx][ny])
-                        tmp[nx][ny] = num;
+                    tmp[nx][ny] = min(num, tmp[nx][ny]);
                 }
                 break;
             }
         }
         // 빈 칸이 없으면 인접한 4방향중 본인이 독점 계약한 곳으로 이동
-        if (!flag && mine != make_pair(-1, -1)){
-            // 아무도 없는 칸이면 그냥 이동
-            if(!tmp[mine.first][mine.second]) 
-                tmp[mine.first][mine.second] = num;
-            else // 누가 있다면 작은 번호가 남기
-                if(num < tmp[mine.first][mine.second])
-                    tmp[mine.first][mine.second] = num;
-            it->second = mine_dir;
+        if(!flag){
+            // 바라보고 있는 방향의 우선순위에 따라 
+            for(int d = 0; d < 4; d++){
+                int new_dir = priority[num][dir][d];
+                int nx = pos.first + dx[new_dir];
+                int ny = pos.second + dy[new_dir];
+
+                if (contact[nx][ny].first == num){
+                    it->second = new_dir;
+                    // 아무도 없는 칸이면 그냥 이동 
+                    if(!tmp[nx][ny]) {
+                        tmp[nx][ny] = num;
+                    }
+                    // 누가 있으면 작은 번호가 남기 
+                    else {
+                        tmp[nx][ny] = min(tmp[nx][ny], num);
+                    }
+                    break;
+                }
+            }
         }
     }
-
-    int dum = -1;
 
     // 이동 결과를 원본에 업데이트 
     for(int i = 0; i < n; i++){
@@ -142,6 +145,7 @@ void DeleteCotact(){
         for(int j = 0; j < n ; j++){
             // 계약 없는 칸은 패스
             if(contact[i][j] == make_pair(0,0)) continue;
+            // k 턴이 지나게 되면 주인 없는 칸으로 돌아감
             if(contact[i][j].second == turn){
                 contact[i][j] = make_pair(0,0);
             }
@@ -161,7 +165,7 @@ int main(){
     // 플레이어 초기 방향
     for(int num = 1; num <= m; num++){
         int dir; cin >> dir;
-        player.push_back(make_pair(num, dir));
+        player.push_back(make_pair(num, dir));  // (번호, 방향)
     }
 
     // 각 플레이어 방향에 따른 우선순위
