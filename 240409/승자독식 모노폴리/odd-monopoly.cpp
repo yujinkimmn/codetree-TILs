@@ -3,6 +3,8 @@
 #include <cstring>
 #include <set>
 
+#define EMPTY make_pair(401, 401)
+
 using namespace std;
 
 int n, m, k;
@@ -11,16 +13,13 @@ int turn;
 
 // 독점 계약 정보
 // (독점한 플레이어 번호, 계약이 끝나는 턴 수)
-pair<int, int> contact[20][20];
+pair<int, int> contract[20][20];
 
-// 플레이어 위치 -> 플레이어 번호로 표시 
-int grid[20][20];
+int given_map[20][20];
+// 플레이어 정보(번호, 방향)을 포함
+pair<int, int> player[20][20];
 // 플레이어 이동시킬 때 사용할 임시 변수
-int tmp[20][20];
-
-// 플레이어 정보
-// (플레이어 번호, 바라보고 있는 방향)
-vector<pair<int, int>> player;
+pair<int, int> tmp[20][20];
 
 // 각 플레이어 별 바라보고 있는 방향에 따른 우선순위
 int priority[401][5][4];
@@ -28,130 +27,115 @@ int priority[401][5][4];
 int dx[5] = {0, -1, 1, 0, 0};   // 상하좌우
 int dy[5] = {0, 0, 0, -1, 1};
 
-void Init(){
-    for(int i = 0; i < n ; i++){
-        for(int j = 0; j < n ; j++){
-            // 플레이어가 있는 자리에 계약 표시하기 
-            if(grid[i][j]){
-                contact[i][j] = make_pair(grid[i][j], k);
-            }
-        }
-    }
-}
-
-// num 번째 플레이어가 격자에서 어디 있는지 반환
-pair<int, int> FindPlayerPos(int num){
-    for(int i = 0 ; i < n; i++){
-        for(int j = 0; j < n ; j++){
-            if(grid[i][j] == num) return make_pair(i, j);
-        }
-    }
-    return make_pair(-1, -1);
-}
-
 // 해당 칸이 격자 벗어나지 않고, 계약이 없는지 확인
 bool CanGo(int x, int y){
-    return (0 <= x && x < n && 0 <= y && y < n) && (contact[x][y] == make_pair(0, 0));
+    return (0 <= x && x < n && 0 <= y && y < n) && (contract[x][y] == EMPTY);
+}
+
+// 종료 조건
+bool End(){
+    if(turn >= 1000) return true;
+
+    // 플레이어 1만 남으면 종료
+    for(int i = 0; i < n ; i++){
+        for(int j = 0 ; j < n ; j++){
+            if(player[i][j] == EMPTY) continue;
+            // 한 명이라도 1번이 아닌 플레이어가 있으면 바로 false
+            if(player[i][j].first != 1) return false;
+        }
+    }
+    return true;
+}
+
+tuple<int, int, int> NextPos(int x, int y, int curr_dir){
+    int num = player[x][y].first;
+
+    // 바라보고 있는 방향의 우선순위에 따라 이동할 수 있는 칸 찾기
+    for(int d = 0; d < 4; d++){
+        int new_dir = priority[num][curr_dir][d];
+        int nx = x + dx[new_dir];
+        int ny = y + dy[new_dir];
+        // 격자 벗어나지 않고, 계약 없는 칸이면 
+        if(CanGo(nx, ny)){
+            return make_tuple(nx, ny, new_dir);
+        }
+    }
+    // 없다면 자신이 독점 계약 한 땅으로 이동
+    for(int d = 0; d < 4; d++){
+        int new_dir = priority[num][curr_dir][d];
+        int nx = x + dx[new_dir];
+        int ny = y + dy[new_dir];
+
+        if(contract[nx][ny].first == num){
+            return make_tuple(nx, ny, new_dir);
+        }
+    }
+}
+
+// (x, y)에 새로운 플레이어(num, dir)가 들어 왔을 때
+void Update(int x, int y, pair<int, int> player){
+    // 빈 자리는 401이므로 무조건 업데이트 됨
+    if(tmp[x][y] > player){
+        tmp[x][y] = player;
+    }
 }
 
 void MovePlayer(){
     // tmp 초기화
-    memset(tmp, 0, sizeof(tmp));
-
-    // 각 플레이어 이동
-    for(auto it = player.begin(); it != player.end(); it++){
-        int num = it->first;
-        int dir = it->second;
-        // 독점 계약 없는칸 찾았는지
-        int flag = 0;   
-        // 플레이어 현재 위치
-        pair<int, int> pos = FindPlayerPos(num);
-
-        // 바라보고 있는 방향의 우선순위에 따라 이동할 수 있는 칸 찾기
-        for(int d = 0; d < 4; d++){
-            int new_dir = priority[num][dir][d];
-            int nx = pos.first + dx[new_dir];
-            int ny = pos.second + dy[new_dir];
-            // 격자 벗어나지 않고, 계약 없는 칸이면 
-            if(CanGo(nx, ny)){
-                flag = 1;
-                it->second = new_dir;
-
-                // 아무도 없는 칸이면 그냥 이동 
-                if (!tmp[nx][ny]){
-                    tmp[nx][ny] = num;
-                }
-                // 누가 있다면 작은 번호가 남기
-                else{
-                    tmp[nx][ny] = min(num, tmp[nx][ny]);
-                }
-                break;
-            }
-        }
-        // 빈 칸이 없으면 인접한 4방향중 본인이 독점 계약한 곳으로 이동
-        if(!flag){
-            // 바라보고 있는 방향의 우선순위에 따라 
-            for(int d = 0; d < 4; d++){
-                int new_dir = priority[num][dir][d];
-                int nx = pos.first + dx[new_dir];
-                int ny = pos.second + dy[new_dir];
-
-                if (contact[nx][ny].first == num){
-                    it->second = new_dir;
-                    // 아무도 없는 칸이면 그냥 이동 
-                    if(!tmp[nx][ny]) {
-                        tmp[nx][ny] = num;
-                    }
-                    // 누가 있으면 작은 번호가 남기 
-                    else {
-                        tmp[nx][ny] = min(tmp[nx][ny], num);
-                    }
-                    break;
-                }
-            }
+    // 초기 값을 401로 해서 항상 update가 되도록함
+    for(int i = 0; i < n ; i++){
+        for(int j = 0; j < n; j++){
+            tmp[i][j] = EMPTY;
         }
     }
 
+    // 각 플레이어 한 칸씩 이동
+    for(int i = 0; i < n ; i++){
+        for(int j = 0; j < n; j++){
+            if(player[i][j] == EMPTY) continue;
+            int num = player[i][j].first;
+            int dir =  player[i][j].second;
+            // 다음 위치와 방향 구하기
+            int nx, ny, next_dir;
+            tie(nx, ny, next_dir) = NextPos(i, j, dir);
+            // 해당 위치로 플레이어 이동
+            Update(nx, ny, make_pair(num, next_dir));
+        }
+    }
+    
     // 이동 결과를 원본에 업데이트 
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n ; j++){
-            grid[i][j] = tmp[i][j];
+            player[i][j] = tmp[i][j];
         }
     }
-    // 남은 플레이어들 벡터에 업데이트
-    vector<pair<int, int>> result;
-    for(auto it = player.begin(); it != player.end(); it++){
-        if(FindPlayerPos(it->first) != make_pair(-1, -1)){
-            result.push_back(*it);
-        }
-    }
-    player = result;
 }
 
 // 남은 플레이어들의 계약 만들기
-void MakeContact(){
+void MakeContract(){
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n ; j++){
             // 플레이어 없는 칸은 패스
-            if(!grid[i][j]) continue;
-            contact[i][j] = make_pair(grid[i][j], turn + k);
+            if(player[i][j] == EMPTY) continue;
+            contract[i][j] = make_pair(player[i][j].first, turn + k);
         }
     }
 }
 
 
-void DeleteCotact(){
+void DeContract(){
     for(int i = 0; i < n; i++){
         for(int j = 0; j < n ; j++){
             // 계약 없는 칸은 패스
-            if(contact[i][j] == make_pair(0,0)) continue;
+            if(contract[i][j] == EMPTY) continue;
             // k 턴이 지나게 되면 주인 없는 칸으로 돌아감
-            if(contact[i][j].second == turn){
-                contact[i][j] = make_pair(0,0);
+            if(contract[i][j].second == turn){
+                contract[i][j] = EMPTY;
             }
         }
     }
 }
+
 
 int main(){
     //freopen("input.txt", "r", stdin);
@@ -159,15 +143,26 @@ int main(){
     // 격자 정보 입력 
     for(int i = 0 ; i < n; i++){
         for(int j = 0; j < n ; j++){
-            cin >> grid[i][j];
+            cin >> given_map[i][j];
+            if (given_map[i][j] == 0){
+                player[i][j] = EMPTY;
+                contract[i][j] = EMPTY;
+            }
         }
     }
     // 플레이어 초기 방향
     for(int num = 1; num <= m; num++){
         int dir; cin >> dir;
-        player.push_back(make_pair(num, dir));  // (번호, 방향)
+        // 플레이어 위치를 찾아서 격자에 넣어주기
+        for(int i = 0 ; i < n ; i++){
+            for(int j = 0; j < n; j++){
+                if(given_map[i][j] == num){
+                    player[i][j] = make_pair(num, dir);
+                    contract[i][j] = make_pair(num, k);
+                }
+            }
+        }
     }
-
     // 각 플레이어 방향에 따른 우선순위
     for(int num = 1; num <= m ; num++){
         for(int dir = 1 ; dir <= 4; dir++){
@@ -177,24 +172,19 @@ int main(){
         }
     }
 
-    // 초기 상태 계약
-    Init();
-
-    while(turn <= 1000){
+    while(!End()){
         turn++;
 
         // 플레이어를 우선순위에 따라 이동
         MovePlayer();
 
         // 남은 플레이어들이 독점 계약 맺기
-        MakeContact();
+        MakeContract();
 
         // 턴수 지난 계약은 없애기
-        DeleteCotact();
-
-        // 플레이어 1번만 남았다면 종료
-        if(player.size() == 1 && player[0].first == 1) break;
+        DeContract();
     }
+
     if (turn < 1000) ans = turn;
     cout << ans << '\n';
     return 0;    
