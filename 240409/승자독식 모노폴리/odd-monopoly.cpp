@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <cstring>
-#include <set>
+#include <tuple>
 
 #define EMPTY make_pair(401, 401)
 
