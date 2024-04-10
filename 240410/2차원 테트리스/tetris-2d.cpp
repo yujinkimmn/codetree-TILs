@@ -1,7 +1,4 @@
 #include <iostream>
-#include <vector>
-#include <cstring>
-#include <tuple>
 
 using namespace std;
 
@@ -153,7 +150,7 @@ int CountBlock(int b_num){
 
 
 int main(){
-    //reopen("input.txt", "r", stdin);
+    //freopen("input.txt", "r", stdin);
     cin >> k;
 
     // k번 블록을 추가
@@ -170,13 +167,8 @@ int main(){
         if(t == 1) Drop(1, 4 - 1 - x, 1);
         if(t == 2) Drop(1, 4 - 1 - x, 3);
         if(t == 3) Drop(1, 4 - 1 - (x + 1), 2);
-
-        // cout << i + 1 << "번째 블록\n";
-        // Print(0);
-        // cout << "\n";
-        // Print(1);
-        // cout << "\n";
     }
+    
     cout << score << "\n";
     int ans = 0;
     ans += CountBlock(0);
