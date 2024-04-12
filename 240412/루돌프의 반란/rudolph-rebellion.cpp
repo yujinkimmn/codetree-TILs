@@ -44,22 +44,36 @@ int InRange(int x, int y){
 void RudolfMove(){
     // 가장 가까운 산타 찾기
     // 거리 작은 순 -> r 큰 순 -> c 큰 순
-    tuple<int, int, int> closest_santa = make_tuple(1e9, 0, 0); // (거리, r, c)
+    // tuple<int, int, int> closest_santa = make_tuple(1e9, 0, 0); // (거리, r, c)
     int closest_index = 0;
+    int closest_dist = 1e9;
 
     // 탈락하지 않은 산타 중 가장 가까운 산타 찾기
-    for(int i = 1 ; i <= P ; i++){
-        if(dead[i]) continue;
-        int x, y; tie(x, y) = santa_pos[i];
+    for(int i = N; i >= 1; i--){
+        for(int j = N; j >= 1; j--){
+            int s = grid[i][j];
+            if(s <= 0) continue;
+            if(dead[s]) continue;
 
-        int dist = (int) pow(rx - x, 2) + (int) pow(ry - y, 2);
-        tuple<int, int, int> cur = make_tuple(dist, -x, -y);
-
-        if(cur < closest_santa){
-            closest_santa = cur;
-            closest_index = i;
+            int dist = (int) pow(rx - i, 2) + (int) pow(ry - j, 2);
+            if (dist < closest_dist){
+                closest_dist = dist;
+                closest_index = s;
+            }
         }
     }
+    // for(int i = 1 ; i <= P ; i++){
+    //     if(dead[i]) continue;
+    //     int x, y; tie(x, y) = santa_pos[i];
+
+    //     int dist = (int) pow(rx - x, 2) + (int) pow(ry - y, 2);
+    //     tuple<int, int, int> cur = make_tuple(dist, -x, -y);
+
+    //     if(cur < closest_santa){
+    //         closest_santa = cur;
+    //         closest_index = i;
+    //     }
+    // }
     // 이동할 산타가 더 이상 없으면
     if(closest_index == 0) return;
 
