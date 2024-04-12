@@ -77,7 +77,7 @@ void RudolfMove(){
     if(dir == -1) cout << "루돌프 이동 방향 오류\n";
     // 원래 있던 자리는 0으로
     grid[rx][ry] = 0;
-    // 루돌프 위치 이동
+    // 루돌프 새로운 위치
     tie(rx, ry) = make_pair(rx + dx[dir], ry + dy[dir]);
 
     // 산타와 충돌했다면 충돌 처리
@@ -94,11 +94,12 @@ void RudolfMove(){
         if(!InRange(nx, ny)){
             dead[s1] = true;
         }
-        else{
-            // 다른 산타가 있다면 상호작용
-            // 다른 산타가 있으면 연쇄 충돌 -> 연쇄 충돌 일어나는 마지막 산타 찾기
+
+        // 다른 산타가 있으면 연쇄 충돌 -> 연쇄 충돌 일어나는 마지막 산타 찾기
+        else {
             int end_x = nx, end_y = ny;
-            while(grid[end_x][end_y] != 0 || !InRange(end_x, end_y)){
+            // 격자 내에서 다른 산타가 있는 동안은 계속 이동
+            while(InRange(end_x, end_y) && grid[end_x][end_y] != 0){
                 end_x += dx[dir], end_y += dy[dir];
             }
             // 마지막 칸에 이전 산타들 하나씩 넣어주기 
@@ -143,10 +144,11 @@ void SantaMove(){
         
         // 그런 칸이 없으면 이동하지 않음. 원래 위치 유지
         if(dir == -1) continue;
-
+        
         // 이동 가능
         pair<int, int> new_pos = make_pair(sx + dx[dir], sy + dy[dir]);
-        // santa_pos[i] = new_pos;
+        // 원래 있던 칸 초기화
+        grid[sx][sy] = 0;
 
         // 루돌프가 있으면 충돌
         if(make_pair(rx, ry) == new_pos) {
@@ -160,15 +162,14 @@ void SantaMove(){
 
             // 격자 밖이면 탈락
             if (!InRange(nx, ny)){
-                // 원래 있던 자리 초기화
-                grid[sx][sy] = 0;
                 dead[i] = true;
                 continue;
             }
             // 다른 산타가 있으면 연쇄 충돌 -> 연쇄 충돌 일어나는 마지막 산타 찾기
             else{
                 int end_x = nx, end_y = ny;
-                while(grid[end_x][end_y] != 0 && InRange(end_x, end_y)){
+               // 격자 내에서 다른 산타가 있는 동안은 계속 이동
+                while(InRange(end_x, end_y) && grid[end_x][end_y] != 0){
                     end_x += dx[dir], end_y += dy[dir];
                 }
                 // 마지막 칸에 이전 산타들 하나씩 넣어주기 
@@ -181,13 +182,11 @@ void SantaMove(){
                 }
                 // 연쇄충돌 처음 일어난 산타 넣어주기
                 grid[nx][ny] = i;
-                grid[sx][sy] = 0;
             }
             
         }
         // 충돌 없으면 그 자리 그대로 이동
         else {
-            grid[sx][sy] = 0;
             grid[new_pos.first][new_pos.second] = i;
         }
     }
